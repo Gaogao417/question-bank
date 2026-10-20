@@ -1,0 +1,4 @@
+Source: /Users/gaochong/develop/teaching_skills
+Commit: d22ad4dde
+Extracted: scripts/question_bank; tests/test_qb*; DOCX source extraction helper
+Original runtime remains unchanged; no production data copied or deleted.

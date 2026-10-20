@@ -1,0 +1,12 @@
+import "./isolated-postgres.mjs";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import vm from "node:vm";
+const source = fs.readFileSync(new URL("../../scripts/question_bank/static/app.js", import.meta.url), "utf8");
+const fn = source.slice(source.indexOf("function stripMarkers("), source.indexOf("function enterEdit("));
+const before = "![keep](asset:fig-01)\n保留中间文字 $x=1$\n![remove](asset:fig-sol)\n![prefix](asset:fig-sol-2)\n![again](asset:fig-sol)  ";
+const expected = "![keep](asset:fig-01)\n保留中间文字 $x=1$\n\n![prefix](asset:fig-sol-2)\n  ";
+const state = {draft:{stem:before,answer:before,solution:before}};
+vm.runInNewContext(fn + ';stripMarkers("fig-sol");', {state});
+for (const field of ["stem","answer","solution"]) assert.equal(state.draft[field],expected);
+console.log("PASS: deletion preserves preceding images, intervening text, prefix keys and whitespace in all three fields");

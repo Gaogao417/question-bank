@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: question_bank
+      POSTGRES_USER: question_bank
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U question_bank -d question_bank"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+  app:
+    build: .
+    environment:
+      QB_DATABASE_URL: postgresql://question_bank:${POSTGRES_PASSWORD}@db:5432/question_bank
+      QB_DATABASE_SCHEMA: question_bank
+    volumes:
+      - question-bank-data:/data
+    ports:
+      - "127.0.0.1:8890:8890"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+volumes:
+  postgres-data:
+  question-bank-data:

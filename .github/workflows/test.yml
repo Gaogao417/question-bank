@@ -1,0 +1,25 @@
+name: PostgreSQL tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: question_bank
+          POSTGRES_PASSWORD: test-only
+          POSTGRES_DB: question_bank
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U question_bank" --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      QB_DATABASE_URL: postgresql://question_bank:test-only@localhost:5432/question_bank
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: pip install uv
+      - run: uv sync --frozen --extra test
+      - run: .venv/bin/python -m pytest

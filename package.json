@@ -1,0 +1,7 @@
+{
+  "name": "question-bank-ui-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {"test:ui": "node tests/e2e/test_qb_manage_ui.mjs"},
+  "devDependencies": {"puppeteer": "^24.42.0"}
+}
