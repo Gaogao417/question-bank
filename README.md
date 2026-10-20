@@ -1,18 +1,20 @@
 # Question Bank
 
-独立题库仓库：PostgreSQL 数据库、Review UI、媒体文件、题目与讲解修订、审核发布、agent 录入工具及课堂导出。
+独立题库仓库：PostgreSQL 18 数据库、Review UI、媒体文件、题目与讲解修订、审核发布、agent 录入工具及课堂导出。
 
 运行时只使用 PostgreSQL。SQLite 只供显式、只读的旧数据导入，不作为自动回退。原教学仓库及现有数据没有删除或改写。
 
 ## 本机启动
 
-需要 Docker Desktop。复制 `.env.example` 为 `.env`，将示例密码换成长随机密码（字母和数字等 URL 安全字符），然后：
+需要 Docker Desktop；Compose 与 CI 使用官方 `postgres:18` 镜像。复制 `.env.example` 为 `.env`，将示例密码换成长随机密码（字母和数字等 URL 安全字符），然后：
 
 ```sh
 docker compose up --build -d
 ```
 
 打开 http://localhost:8890 。数据库和媒体分别保存在持久化卷中；停止容器不会删除数据。不要执行 `docker compose down -v`，它会删除卷。
+
+PostgreSQL 18 的数据卷挂载在 `/var/lib/postgresql`，镜像默认数据目录为 `/var/lib/postgresql/18/docker`（[官方镜像说明](https://hub.docker.com/_/postgres#pgdata)）。Compose 使用单独的 `postgres18-data` 卷；旧版 PostgreSQL 17 卷不能直接挂载给 18。已有数据应先用原版本和本工具备份，再恢复到新的空 PostgreSQL 18 schema 与媒体目录；此配置不会自动迁移旧卷。
 
 本版本沿用原 Review UI 的访问模型，默认只绑定本机。公网部署前需要接入登录、权限和 HTTPS；不要直接将管理端口向公网开放。模型调用配置按需另行提供；不开启模型调用也可录入、编辑和审核。
 
@@ -62,4 +64,6 @@ QB_DATABASE_SCHEMA=restored_bank .venv/bin/question-bank restore --source /path/
 
 ## 测试
 
-设置指向专用测试数据库的 `QB_DATABASE_URL`，运行 `.venv/bin/python -m pytest`。测试使用真实 PostgreSQL，每个测试建立独立 schema，结束后删除；不调用真实付费模型。迁移前的 SQLite 内部 DDL 测试由 PostgreSQL 迁移、并发及只读导入测试替代。
+设置指向专用 PostgreSQL 18 测试数据库的 `QB_DATABASE_URL`，运行 `.venv/bin/python -m pytest`；安装 Node 依赖后运行 `npm ci && npm run test:ui` 验证实际管理页面。测试使用真实 PostgreSQL，每个测试建立独立 schema，结束后删除；不调用真实付费模型。迁移前的 SQLite 内部 DDL 测试由 PostgreSQL 迁移、并发及只读导入测试替代。
+
+本机 PostgreSQL 18 的真实版本、测试数量、持久化重启和证据见 [PostgreSQL 18 验证报告](docs/postgresql18-validation.md)。本机验证不代表阿里云 RDS PostgreSQL 18 已验证。

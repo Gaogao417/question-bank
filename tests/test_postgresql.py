@@ -93,3 +93,37 @@ def test_readonly_sqlite_import_preserves_facts_and_sequences(tmp_path):
     finally:imported.close()
     with pytest.raises(ValueError,match='empty'):
         import_sqlite(legacy,tmp_path/'imported')
+
+
+def test_backup_restore_resets_all_identity_sequences(tmp_path):
+    """Restore must advance populated identities and initialize empty ones."""
+    source = QuestionBankService(tmp_path / 'source')
+    try:
+        source.submit_candidate(make_package(tmp_path))
+        source.record_review('2026-DEMO-Q021', {
+            'decision': 'approved', 'base_revision': 1,
+            'operation_id': 'review-before-backup',
+        })
+        source.publish('2026-DEMO-Q021', {
+            'revision': 1, 'expected_previous': None,
+            'operation_id': 'publish-before-backup',
+        })
+        backup.backup(source.root, tmp_path / 'snapshot')
+    finally:
+        source.close()
+    snapshot = json.loads((tmp_path / 'snapshot/database.json').read_text())
+    backup.restore(tmp_path / 'snapshot', tmp_path / 'restored')
+    restored = QuestionBankService(tmp_path / 'restored')
+    try:
+        for table, column in backup.IDENTITIES.items():
+            expected = max((row[column] for row in snapshot['tables'][table]), default=0) + 1
+            actual = restored.conn.execute(
+                'SELECT nextval(pg_get_serial_sequence(%s,%s)) AS value',
+                (table, column),
+            ).fetchone()['value']
+            assert actual == expected, table
+        assert restored.is_approved('2026-DEMO-Q021', 1)
+        assert restored.item_detail('2026-DEMO-Q021')['publication']['revision'] == 1
+        assert backup.verify(restored.root)['items'] == 1
+    finally:
+        restored.close()

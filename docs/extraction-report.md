@@ -36,3 +36,7 @@
 - 原管理界面没有用户登录系统，Compose 仅绑定本机；公网发布需要单独落实访问控制。
 - Docker 镜像构建/云端部署和 CI 远程执行尚未验证；本次实际验证使用新包与本机 PostgreSQL 容器。
 - 课堂导出格式保持现状；本次未启动教学课堂消费导出，未宣称课堂端到端通过。
+
+## 后续 PostgreSQL 18 验证
+
+2026-10-20 已将默认 Compose/CI 目标升级到 PostgreSQL 18；本机 PostgreSQL 18.6 的独立实际验证见 [postgresql18-validation.md](postgresql18-validation.md)。上文 PostgreSQL 17 的 166 测试是初始提取历史，不代表 18 的验证结果；18 本轮为 167 测试通过。
