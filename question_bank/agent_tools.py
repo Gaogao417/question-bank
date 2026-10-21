@@ -11,6 +11,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -68,6 +69,53 @@ def image_size(path):
         if im.format not in {"PNG", "JPEG", "WEBP"}:
             raise ToolError("Not a directly usable raster image")
         return list(im.size)
+
+
+def prepare_pdf(pdf_files, paper_id, out, dpi=150):
+    """Freeze full PDF evidence pages; never manufacture illustration crops."""
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", paper_id):
+        raise ToolError("paper_id must use letters, numbers, '-' or '_'")
+    if not 72 <= dpi <= 300:
+        raise ToolError("PDF rendering dpi must be between 72 and 300")
+    out = Path(out).resolve()
+    if out.exists():
+        raise ToolError("Output already exists; use a new materials directory")
+    renderer = shutil.which("pdftoppm")
+    if not renderer:
+        raise ToolError("pdftoppm is required for PDF evidence pages")
+    sources = [Path(p).resolve() for p in pdf_files]
+    if not sources or any(not p.is_file() or p.suffix.lower() != ".pdf" for p in sources):
+        raise ToolError("Provide readable original PDF files")
+    result = {"schema": "qb_agent_materials/v1", "paper_id": paper_id,
+              "sources": [], "pages": {}, "illustrations": {}, "excluded": [],
+              "attribution_version": ATTRIBUTION_VERSION}
+    out.mkdir(parents=True)
+    for index, source in enumerate(sources, 1):
+        sid = f"src{index}"
+        source_hash = digest(source)
+        folder = out / sid
+        folder.mkdir()
+        subprocess.run([renderer, "-r", str(dpi), "-png", str(source), str(folder / "page")],
+                       check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        pages = sorted(folder.glob("page-*.png"), key=lambda p: int(p.stem.rsplit("-", 1)[1]))
+        if not pages or digest(source) != source_hash:
+            raise ToolError("PDF changed during rendering or produced no pages; use a new directory")
+        result["sources"].append({"id": sid, "path": str(source), "sha256": source_hash,
+                                  "source": {"format": "pdf", "path": str(source)},
+                                  "image_attribution_status": "not_available"})
+        for number, page in enumerate(pages, 1):
+            result["pages"][f"{sid}-p{number:03d}"] = {
+                "path": str(page), "sha256": digest(page), "size_px": image_size(page),
+                "source_id": sid, "page_number": number,
+                "global_page_number": len(result["pages"]) + 1}
+    write_json(out / "materials.json", result)
+    (out / "README.md").write_text(
+        f"# {paper_id} PDF materials\n\nFull pages are source evidence only. "
+        "No illustration whitelist or crops are generated. Declare missing images for UI review.\n\n" +
+        "\n".join(f"- `{key}`: {page['path']}" for key, page in result["pages"].items()) + "\n",
+        encoding="utf-8")
+    return {"materials": str(out / "materials.json"), "pages": len(result["pages"]),
+            "usable_illustrations": 0, "excluded": 0}
 
 
 def prepare(word_dirs, paper_id, out):
@@ -374,6 +422,11 @@ def main(argv=None):
     p.add_argument("--word-dir", action="append", required=True, help="Existing extractor output; repeat for separate answers")
     p.add_argument("--paper-id", required=True)
     p.add_argument("--out", required=True)
+    p = sub.add_parser("prepare-pdf")
+    p.add_argument("--pdf", action="append", required=True, help="Original PDF; repeat for separate answers")
+    p.add_argument("--paper-id", required=True)
+    p.add_argument("--out", required=True)
+    p.add_argument("--dpi", type=int, default=150)
     p = sub.add_parser("new")
     p.add_argument("--out", required=True)
     p.add_argument("--number", type=int, required=True)
@@ -397,6 +450,8 @@ def main(argv=None):
     try:
         if args.command == "prepare":
             result = prepare(args.word_dir, args.paper_id, args.out)
+        elif args.command == "prepare-pdf":
+            result = prepare_pdf(args.pdf, args.paper_id, args.out, args.dpi)
         elif args.command == "new":
             result = new_task(args.out, args.number, args.type, args.points)
         elif args.command == "read":
@@ -411,7 +466,7 @@ def main(argv=None):
     except QbError as exc:
         print(json.dumps({"ok": False, "errors": exc.errors}, ensure_ascii=False))
         return 2
-    except (ValueError, OSError, KeyError, TypeError) as exc:
+    except (ValueError, OSError, KeyError, TypeError, subprocess.SubprocessError) as exc:
         print(json.dumps({"ok": False, "errors": [{"code": "AGENT_INPUT_INVALID", "message": str(exc),
                             "fix_hint": "Check materials/meta; use only full whitelisted originals, cite source pages; uncertain images go to Review UI"}]}, ensure_ascii=False))
         return 2

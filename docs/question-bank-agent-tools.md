@@ -8,6 +8,16 @@
 
 ## 1. 准备材料
 
+PDF 原卷可直接准备完整证据页（支持重复 `--pdf` 追加独立答案卷）：
+
+```sh
+.venv/bin/question-bank-agent prepare-pdf --pdf /path/to/paper.pdf --paper-id 2024-SHANGHAI-GAOKAO --out /path/to/new-materials
+```
+
+此入口需要 Poppler 的 `pdftoppm`，记录原 PDF 与全页图的哈希，不裁图、不生成插图白名单。
+有图题仍须声明 `missing_image`，在 Review UI 补图；缺答案或解析声明对应疑点。
+之后继续使用相同的 `new/read/fill/check/submit` 工具，不将整页图当题图。
+
 已有提取结果时：
 
 ```powershell
