@@ -13,3 +13,4 @@ backups/
 artifacts/
 node_modules/
 .tmp-*/
+.qb.env

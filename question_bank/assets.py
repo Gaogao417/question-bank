@@ -20,6 +20,7 @@ from pathlib import Path
 
 from PIL import Image, UnidentifiedImageError
 
+from question_bank import oss_store
 from question_bank.canonical import sha256_bytes
 from question_bank.errors import QbError, error
 from question_bank.models import ImageBinding
@@ -54,10 +55,13 @@ _AUDIO_MAGIC: list[tuple[str, tuple[bytes, ...]]] = [
 
 
 class AssetStore:
-    def __init__(self, root: Path):
+    def __init__(self, root: Path, *, oss: bool | None = None):
         self.root = root.resolve()
         self.dir = self.root / "assets"
         self.dir.mkdir(parents=True, exist_ok=True)
+        # oss=None 跟随环境变量；显式 False 用于临时/预检根（不往真实 bucket 写）。
+        self.oss = oss_store.enabled() if oss is None else oss
+        self._bytes_lru: dict[str, bytes] = {}
 
     # ------------------------------------------------------------------
     # 登记
@@ -89,7 +93,32 @@ class AssetStore:
             ])
         suffix = ALLOWED_MIME[mime]
         rel = f"{digest[7:9]}/{digest[7:]}{suffix}"
-        target = self.dir / rel
+        self._persist(f"assets/{rel}".replace("\\", "/"), raw, mime)
+        return {
+            "asset_id": digest,
+            "sha256": digest,
+            "path": f"assets/{rel}".replace("\\", "/"),
+            "mime": mime,
+            "size_bytes": len(raw),
+            "width": width,
+            "height": height,
+            "source_kind": source_kind,
+        }
+
+    def asset_path(self, asset_id: str) -> Path:
+        return self.root / self.asset_rel(asset_id)
+
+    # ------------------------------------------------------------------
+    # 持久化与读取的存储层抽象（OSS 直存 / 本地磁盘共用）
+    # ------------------------------------------------------------------
+
+    def _persist(self, key: str, raw: bytes, mime: str) -> None:
+        """校验后的字节落位。key 即 DB path；内容寻址不可变，幂等。"""
+        if self.oss:
+            if not oss_store.object_exists(key):
+                oss_store.put_object(key, raw, mime)
+            return
+        target = self.root / key
         if not target.exists():
             target.parent.mkdir(parents=True, exist_ok=True)
             handle = tempfile.NamedTemporaryFile(
@@ -105,19 +134,34 @@ class AssetStore:
                 handle.close()
                 if os.path.exists(handle.name):
                     os.unlink(handle.name)
-        return {
-            "asset_id": digest,
-            "sha256": digest,
-            "path": f"assets/{rel}".replace("\\", "/"),
-            "mime": mime,
-            "size_bytes": len(raw),
-            "width": width,
-            "height": height,
-            "source_kind": source_kind,
-        }
 
-    def asset_path(self, asset_id: str) -> Path:
-        return self.root / self.asset_rel(asset_id)
+    def _load_bytes(self, key: str, *, cache: bool = False) -> bytes:
+        """读取资产字节；OSS 模式从对象存储取，否则读本地文件。"""
+        if cache and key in self._bytes_lru:
+            return self._bytes_lru[key]
+        if self.oss:
+            raw = oss_store.get_object(key)
+        else:
+            path = self.root / key
+            if not path.is_file():
+                raise QbError([
+                    error("ASSET_FILE_MISSING",
+                          f"资产记录存在但文件缺失: {key}",
+                          fix_hint="从备份恢复媒体目录，不要用重新生成的内容顶替",
+                          retryable=False)
+                ])
+            raw = path.read_bytes()
+        if cache:
+            # 小容量 FIFO：批量渲染（导出）同图复用，避免重复拉取。
+            self._bytes_lru[key] = raw
+            if len(self._bytes_lru) > 16:
+                self._bytes_lru.pop(next(iter(self._bytes_lru)))
+        return raw
+
+    def _exists(self, key: str) -> bool:
+        if self.oss:
+            return oss_store.object_exists(key)
+        return (self.root / key).is_file()
 
     # ------------------------------------------------------------------
     # 录音（讲解音频）：与图片共用 hash 寻址与原子落盘，校验路径独立。
@@ -169,22 +213,7 @@ class AssetStore:
             ])
         digest = sha256_bytes(raw)
         rel = f"{digest[7:9]}/{digest[7:]}{suffix}"
-        target = self.dir / rel
-        if not target.exists():
-            target.parent.mkdir(parents=True, exist_ok=True)
-            handle = tempfile.NamedTemporaryFile(
-                "wb", dir=target.parent, delete=False, suffix=".tmp"
-            )
-            try:
-                handle.write(raw)
-                handle.flush()
-                os.fsync(handle.fileno())
-                handle.close()
-                os.replace(handle.name, target)
-            finally:
-                handle.close()
-                if os.path.exists(handle.name):
-                    os.unlink(handle.name)
+        self._persist(f"assets/{rel}".replace("\\", "/"), raw, normalized_type)
         return {
             "asset_id": digest,
             "sha256": digest,
@@ -250,15 +279,7 @@ class AssetStore:
                 error("AUDIO_ASSET_EXPECTED",
                       f"资产不是录音（mime={mime}）", retryable=False)
             ])
-        path = self.root / rel_path
-        if not path.is_file():
-            raise QbError([
-                error("ASSET_FILE_MISSING",
-                      f"录音记录存在但文件缺失: {rel_path}",
-                      fix_hint="从备份恢复媒体目录，不要用重新录制的内容顶替",
-                      retryable=False)
-            ])
-        return path.read_bytes()
+        return self._load_bytes(rel_path)
 
     def asset_rel(self, asset_id: str) -> str:
         row_path = self._lookup_path(asset_id)
@@ -266,12 +287,11 @@ class AssetStore:
             raise QbError([
                 error("ASSET_NOT_FOUND", f"资产不存在: {asset_id}", retryable=False)
             ])
-        path = self.root / row_path
-        if not path.is_file():
+        if not self._exists(row_path):
             raise QbError([
                 error(
                     "ASSET_FILE_MISSING",
-                    f"资产记录存在但文件缺失: {asset_id}",
+                    f"资产记录存在但媒体缺失: {asset_id}",
                     fix_hint="从备份恢复媒体目录，不要用重新生成的内容顶替",
                     retryable=False,
                 )
@@ -282,7 +302,7 @@ class AssetStore:
         # 由调用方（service）保证 assets 表可查；这里只做文件层兜底。
         for suffix in (".png", ".jpg", ".webp"):
             candidate = f"assets/{asset_id[7:9]}/{asset_id[7:]}{suffix}"
-            if (self.root / candidate).is_file():
+            if self._exists(candidate):
                 return candidate
         return None
 
@@ -308,9 +328,9 @@ class AssetStore:
         rotate: int = 0,
     ) -> bytes:
         """渲染数据库登记路径（assets/…）指向的资产；与 render 共用变换。"""
-        path = self.root / rel_path
+        raw = self._load_bytes(rel_path, cache=True)
         try:
-            with Image.open(path) as image:
+            with Image.open(io.BytesIO(raw)) as image:
                 image.load()
                 if image.mode not in ("RGB", "RGBA"):
                     image = image.convert("RGBA")
@@ -340,8 +360,7 @@ class AssetStore:
             ]) from exc
 
     def dimensions(self, asset_id: str) -> tuple[int, int]:
-        path = self.root / self.asset_rel(asset_id)
-        with Image.open(path) as image:
+        with Image.open(io.BytesIO(self._load_bytes(self.asset_rel(asset_id)))) as image:
             return image.size
 
     def validate_binding_renderable(self, binding: ImageBinding) -> None:

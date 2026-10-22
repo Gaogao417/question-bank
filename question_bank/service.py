@@ -65,14 +65,16 @@ def _write_locked(method):
 
 
 class QuestionBankService(TeachingNotesMixin):
-    def __init__(self, root: str | Path, *, database_schema: str | None = None):
+    def __init__(self, root: str | Path, *, database_schema: str | None = None,
+                 oss: bool | None = None):
         self.root = Path(root).expanduser().resolve()
         self._local = threading.local()
         self._database_schema = database_schema
         self._connections = []
         self._connections_lock = threading.Lock()
         self.conn  # Initialize the PostgreSQL schema before use.
-        self.assets = AssetStore(self.root)
+        # oss=None 跟随环境变量；预检/临时根显式 False，不往真实 bucket 写。
+        self.assets = AssetStore(self.root, oss=oss)
         self._write_lock = threading.RLock()
         # 上次进程中断留下的 running 调用标记为 unknown（刚启动的进程
         # 不可能有在途调用）；不自动重试付费接口。
@@ -2068,7 +2070,7 @@ class QuestionBankService(TeachingNotesMixin):
 
     def asset_bytes(self, asset_id: str) -> tuple[str, bytes]:
         rel = self.asset_rel_path(asset_id)
-        return rel, (self.root / rel).read_bytes()
+        return rel, self.assets._load_bytes(rel)
 
     # ==================================================================
     # 内部工具

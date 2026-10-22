@@ -329,7 +329,7 @@ def process(materials, task_dir, root=None, actor="client-agent"):
                     "note": "Temporary database structural preflight only; does not verify transcription correctness, target database acceptance, or publication approval"}
         # Full current A/B checks in an isolated temporary DB, never writes target DB.
         with db_mod.temporary_schema() as schema:
-            service = QuestionBankService(Path(tmp) / "check-db", database_schema=schema)
+            service = QuestionBankService(Path(tmp) / "check-db", database_schema=schema, oss=False)
             try:
                 result = service.submit_candidate(package, actor_id="agent-preflight")
             finally:
