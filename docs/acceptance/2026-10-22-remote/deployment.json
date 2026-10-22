@@ -1,0 +1,28 @@
+{
+  "verified_at_utc": "2026-10-22T06:38:51Z",
+  "unit": "question-bank.service",
+  "port": 8890,
+  "shared_services": [
+    "Review UI",
+    "Remote ingestion API"
+  ],
+  "whole_machine_reboot_performed": false,
+  "business_submission_performed": false,
+  "health_http": 200,
+  "health_ok": true,
+  "ui_http": 200,
+  "unauthenticated_submission_http": 401,
+  "remote_routes_present": true,
+  "missing_receipt_http": 404,
+  "systemd": {
+    "MainPID": "5474",
+    "NRestarts": "0",
+    "ExecMainStartTimestamp": "Thu 2026-10-22 14:38:31 CST",
+    "ActiveState": "active",
+    "SubState": "running",
+    "UnitFileState": "enabled"
+  },
+  "oss_credentials_present_in_service": true,
+  "boot_target_link": "/etc/systemd/system/question-bank.service",
+  "unit_sha256": "809655e3f595ec016999aae09d3c032c3ee2cf850adf66934fbfab7878e98e0d"
+}

@@ -55,7 +55,11 @@ def connect(root: str | Path, *, database_schema: str | None = None) -> Connecti
         name = schema_name(database_schema)
         with conn.transaction():
             conn.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", (name,))
-            conn.execute(sql.SQL("CREATE SCHEMA IF NOT EXISTS {}").format(sql.Identifier(name)))
+            # CREATE SCHEMA IF NOT EXISTS still requires database-level CREATE
+            # privilege even when the schema exists; skip it for restricted
+            # accounts that already own the schema.
+            if conn.execute("SELECT to_regnamespace(%s) AS nsp", (name,)).fetchone()["nsp"] is None:
+                conn.execute(sql.SQL("CREATE SCHEMA IF NOT EXISTS {}").format(sql.Identifier(name)))
             conn.execute(sql.SQL("SET search_path TO {}").format(sql.Identifier(name)))
             conn.execute("CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER PRIMARY KEY, checksum TEXT NOT NULL, applied_at TEXT NOT NULL)")
             for path in sorted((Path(__file__).parent / "migrations").glob("*.sql")):

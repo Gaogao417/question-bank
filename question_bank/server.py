@@ -24,6 +24,17 @@ from question_bank.service import QuestionBankService
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 
+def _oss_redirect(key: str) -> Response:
+    """302 到 OSS 公网签名 URL（1 小时）。no-store 防签名 URL 过期后仍被缓存复用。"""
+    from question_bank import oss_store
+
+    url = oss_store.presigned_get(key, expires_seconds=3600)
+    return Response(
+        status_code=302,
+        headers={"Location": url, "Cache-Control": "no-store"},
+    )
+
+
 def create_app(root: str | Path) -> FastAPI:
     app = FastAPI(title="question-bank-manage", version="b1")
     state: dict[str, QuestionBankService] = {}
@@ -43,6 +54,34 @@ def create_app(root: str | Path) -> FastAPI:
         svc = state.pop("service", None)
         if svc is not None:
             svc.close()
+
+    @app.post("/api/submissions")
+    async def submit_package(request: Request):
+        from question_bank.remote_ingestion import MAX_UPLOAD, submit_upload
+        from fastapi.responses import JSONResponse
+        raw = bytearray()
+        async for chunk in request.stream():
+            if len(raw) + len(chunk) > MAX_UPLOAD:
+                return JSONResponse({"ok": False, "errors": [{"code": "UPLOAD_TOO_LARGE", "message": "Upload exceeds 64 MiB", "retryable": False}]}, status_code=413)
+            raw.extend(chunk)
+        try:
+            receipt = await run_in_threadpool(submit_upload, service(), bytes(raw), "remote-agent")
+            accepted = receipt["status"] in {"accepted", "accepted_with_issues", "noop"}
+            return JSONResponse({"ok": accepted, "receipt": receipt}, status_code=200 if accepted else 422)
+        except ReceiptError as exc:
+            return JSONResponse({"ok": False, "errors": exc.errors}, status_code=409)
+        except QbError as exc:
+            return JSONResponse({"ok": False, "errors": exc.errors}, status_code=422)
+        except Exception:
+            return JSONResponse({"ok": False, "outcome_unknown": True, "errors": [{"code": "SUBMISSION_UNAVAILABLE", "message": "Query receipt before retrying exact submission", "retryable": True}]}, status_code=503)
+
+    @app.get("/api/submissions/{submission_id}")
+    def get_submission(submission_id: str):
+        from fastapi.responses import JSONResponse
+        try:
+            return {"ok": True, "receipt": service().submission_receipt(submission_id)}
+        except QbError as exc:
+            return JSONResponse({"ok": False, "errors": exc.errors}, status_code=404)
 
     @app.get("/healthz")
     def healthz() -> dict[str, Any]:
@@ -212,7 +251,7 @@ def create_app(root: str | Path) -> FastAPI:
             raise _http(exc, 404 if not_found else 400) from exc
 
     @app.get("/api/assets/{asset_id}/audio")
-    def audio_file(asset_id: str) -> FileResponse:
+    def audio_file(asset_id: str):
         from question_bank.errors import error as _error
 
         svc = service()
@@ -225,9 +264,13 @@ def create_app(root: str | Path) -> FastAPI:
                     _error("AUDIO_ASSET_EXPECTED",
                            f"资产不是录音: {asset_id}", retryable=False)
                 ])
+            if svc.assets.oss:
+                return _oss_redirect(row["path"])
             return FileResponse(svc.root / row["path"], media_type=row["mime"])
         except QbError as exc:
             raise _http(exc, 404) from exc
+        except Exception as exc:  # OSS 签名/网络故障
+            raise HTTPException(status_code=502, detail=f"audio fetch failed: {exc}") from exc
 
     @app.get("/api/items/{item_id}")
     def item_detail(item_id: str, revision: int | None = None) -> dict[str, Any]:
@@ -371,11 +414,16 @@ def create_app(root: str | Path) -> FastAPI:
             raise _http(exc, 404) from exc
 
     @app.get("/api/assets/{asset_id}/file")
-    def asset_file(asset_id: str) -> FileResponse:
+    def asset_file(asset_id: str):
         try:
             rel = service().asset_rel_path(asset_id)
         except QbError as exc:
             raise _http(exc, 404) from exc
+        if service().assets.oss:
+            try:
+                return _oss_redirect(rel)
+            except Exception as exc:  # OSS 签名/网络故障
+                raise HTTPException(status_code=502, detail=f"asset fetch failed: {exc}") from exc
         return FileResponse(Path(root) / rel)
 
     @app.get("/api/assets/{asset_id}/render")

@@ -1,0 +1,1023 @@
+{
+  "test_database": "qb_acceptance_a478e3b3197a47bd",
+  "object_prefix": "acceptance/a478e3b3197a47bd9cce8bd582578d7d/",
+  "planned_sample_count": 30,
+  "concurrency": 1,
+  "measurement": "synchronous service call including OSS and DB; excludes package generation",
+  "arrival_model": "closed loop, sequential; no fixed offered rate",
+  "started_at": "2026-10-22T05:38:39Z",
+  "service_health": {
+    "http_status": 200,
+    "ok": true
+  },
+  "server_version": "PostgreSQL 18.6",
+  "samples": [
+    {
+      "request_id": "cloud-0",
+      "elapsed_ms": 1120.0835020008526,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.6714079995144857
+        },
+        "db_sql": {
+          "calls": 26,
+          "ms": 75.57220500711992
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 417.7627469980507
+        },
+        "oss_put_object": {
+          "calls": 4,
+          "ms": 179.72416500015242
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 426.26149200259533
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.541556999858585
+        }
+      }
+    },
+    {
+      "request_id": "cloud-1",
+      "elapsed_ms": 1014.8851100002503,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.6059840001835255
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 69.53965699540277
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 308.9535130002332
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 616.5662220028025
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.519327999834786
+        }
+      }
+    },
+    {
+      "request_id": "cloud-2",
+      "elapsed_ms": 1013.6456839991297,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.626986999530345
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 68.74480899750779
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 352.1130259960046
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 573.476726996887
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.5054549987544306
+        }
+      }
+    },
+    {
+      "request_id": "cloud-3",
+      "elapsed_ms": 974.4407069993031,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.579685000455356
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 66.15251800394617
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 316.20368599942594
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 571.8494820030173
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.8325900002528215
+        }
+      }
+    },
+    {
+      "request_id": "cloud-4",
+      "elapsed_ms": 899.6053930004564,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.605239000331494
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 67.30330900427361
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 269.47854299760365
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 543.1893979985034
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.525179999793181
+        }
+      }
+    },
+    {
+      "request_id": "cloud-5",
+      "elapsed_ms": 986.2143020000076,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 5.089123000288964
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 93.39584699773695
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 312.5031429990486
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 555.4390999950556
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 4.957531000400195
+        }
+      }
+    },
+    {
+      "request_id": "cloud-6",
+      "elapsed_ms": 946.0575339999195,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.5077419995795935
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 65.07472600060282
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 293.7352699955227
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 568.3532990024105
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.44831400050316
+        }
+      }
+    },
+    {
+      "request_id": "cloud-7",
+      "elapsed_ms": 877.0534719988063,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.5361290008731885
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 65.63772699519177
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 292.57051899912767
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 498.9933939996263
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.5912979999702657
+        }
+      }
+    },
+    {
+      "request_id": "cloud-8",
+      "elapsed_ms": 969.0457390006486,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.581919001386268
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 66.51450500794454
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 352.3816100005206
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 530.816087999483
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.5339910007460276
+        }
+      }
+    },
+    {
+      "request_id": "cloud-9",
+      "elapsed_ms": 1042.0772759989632,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.616069001305732
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 65.23828499484807
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 392.0549009999377
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 566.0071449965471
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.54692700036685
+        }
+      }
+    },
+    {
+      "request_id": "cloud-10",
+      "elapsed_ms": 932.5667689990951,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.5463430010859156
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 64.88057500610012
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 322.12523400085047
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 525.0867119957547
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.4718210006540176
+        }
+      }
+    },
+    {
+      "request_id": "cloud-11",
+      "elapsed_ms": 941.3390800000343,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.4895070000638952
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 65.64564000109385
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 300.5497859958268
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 555.0118230057706
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.546977999372757
+        }
+      }
+    },
+    {
+      "request_id": "cloud-12",
+      "elapsed_ms": 854.3169439999474,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.5456560015300056
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 65.63243900200177
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 279.65745099390915
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 488.5975920005876
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.542357999118394
+        }
+      }
+    },
+    {
+      "request_id": "cloud-13",
+      "elapsed_ms": 869.3134740005917,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.552662999733002
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 66.08080000296468
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 265.16382199588406
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 518.6105919983675
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.5003789996844716
+        }
+      }
+    },
+    {
+      "request_id": "cloud-14",
+      "elapsed_ms": 939.9309780001204,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.614469000036479
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 64.71858200347924
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 337.22805300385517
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 516.3588099985645
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.5215740006387932
+        }
+      }
+    },
+    {
+      "request_id": "cloud-15",
+      "elapsed_ms": 919.3897799996193,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.520645000913646
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 64.83124600526935
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 304.7550550036249
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 530.7290229993669
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.4656519999552984
+        }
+      }
+    },
+    {
+      "request_id": "cloud-16",
+      "elapsed_ms": 833.24242100025,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.5489500003459398
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 66.40879600672633
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 284.2288779993396
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 463.16395600115357
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.487751000444405
+        }
+      }
+    },
+    {
+      "request_id": "cloud-17",
+      "elapsed_ms": 870.5985689994122,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.4812720002955757
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 65.0304259997938
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 274.48577399991336
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 511.1704690007173
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.4860140001692344
+        }
+      }
+    },
+    {
+      "request_id": "cloud-18",
+      "elapsed_ms": 912.6677349995589,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.500485999917146
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 65.49950300177443
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 308.9053219991911
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 519.4390790002217
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.5320690001535695
+        }
+      }
+    },
+    {
+      "request_id": "cloud-19",
+      "elapsed_ms": 1052.0392630005517,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.6850850008486304
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 64.06433599840966
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 388.96401900092314
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 578.0540460018528
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.4759119987720624
+        }
+      }
+    },
+    {
+      "request_id": "cloud-20",
+      "elapsed_ms": 903.92506399985,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.5568989985913504
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 65.91303300228901
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 287.4993350033037
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 530.8960899983504
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.6567909990262706
+        }
+      }
+    },
+    {
+      "request_id": "cloud-21",
+      "elapsed_ms": 826.2626939995243,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.5617430001148023
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 65.105676991152
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 291.1930870031938
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 450.2913539927249
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.522060000046622
+        }
+      }
+    },
+    {
+      "request_id": "cloud-22",
+      "elapsed_ms": 883.9159390008717,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.5060970001504757
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 64.98058699799003
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 280.6241019989102
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 519.2042109993054
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.530574000047636
+        }
+      }
+    },
+    {
+      "request_id": "cloud-23",
+      "elapsed_ms": 902.7254760003416,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.4890599997888785
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 64.57334899823763
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 265.87411599757615
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 552.731625000888
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.519214000130887
+        }
+      }
+    },
+    {
+      "request_id": "cloud-24",
+      "elapsed_ms": 867.508565001117,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.491982999345055
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 70.22207100635569
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 272.48990000225604
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 506.1732240010315
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.4525980006728787
+        }
+      }
+    },
+    {
+      "request_id": "cloud-25",
+      "elapsed_ms": 824.9843390003662,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.5444799994147616
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 66.1223639963282
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 260.59529099802603
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 478.7088910015882
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.4817439989419654
+        }
+      }
+    },
+    {
+      "request_id": "cloud-26",
+      "elapsed_ms": 864.5558120006172,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.524163999623852
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 65.43001400132198
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 262.2133740042045
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 518.1835499952285
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.672783000889467
+        }
+      }
+    },
+    {
+      "request_id": "cloud-27",
+      "elapsed_ms": 839.1854839992448,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.514886000426486
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 64.68367599882185
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 278.78055699693505
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 476.97635399890714
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.505172000383027
+        }
+      }
+    },
+    {
+      "request_id": "cloud-28",
+      "elapsed_ms": 801.4209129996743,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.5191710010403767
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 64.27762900057132
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 249.2827199966996
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 468.5074069984694
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.488504000211833
+        }
+      }
+    },
+    {
+      "request_id": "cloud-29",
+      "elapsed_ms": 800.6195710004249,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted",
+      "stages": {
+        "db_lock": {
+          "calls": 1,
+          "ms": 2.653481000379543
+        },
+        "db_sql": {
+          "calls": 25,
+          "ms": 64.88881099721766
+        },
+        "oss_object_exists": {
+          "calls": 12,
+          "ms": 280.10423600426293
+        },
+        "oss_put_object": {
+          "calls": 0,
+          "ms": 0.0
+        },
+        "oss_get_object": {
+          "calls": 12,
+          "ms": 436.7494769994664
+        },
+        "db_commit": {
+          "calls": 1,
+          "ms": 2.5873539998428896
+        }
+      }
+    }
+  ],
+  "latency_ms": {
+    "p50": 902.7254760003416,
+    "p95": 1052.0392630005517,
+    "p99": 1120.0835020008526
+  },
+  "total_measured_seconds": 27.48361758899955,
+  "service_time_throughput_per_second": 1.0915593590564163,
+  "cache": "first request creates four objects; later requests reuse keys with fresh byte verification; no byte-cache shortcut",
+  "lost_response_replay": "passed",
+  "rollback_and_retry": "passed",
+  "real_oss_hashes_verified": 4,
+  "backup_restore_all_tables_and_assets": "passed",
+  "business_table_count": 21,
+  "result": "passed",
+  "test_objects_removed": true,
+  "test_object_count": 4,
+  "test_database_removed": true
+}

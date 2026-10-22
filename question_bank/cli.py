@@ -75,6 +75,49 @@ def cmd_verify(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_oss_sync(args: argparse.Namespace) -> int:
+    """存量本地媒体一次性回填 OSS（key=path）；已存在的对象跳过。"""
+    from question_bank import oss_store
+
+    if not oss_store.enabled():
+        _print({"ok": False, "errors": [{"code": "OSS_ERROR",
+                                         "message": "Set QB_OSS_BUCKET to enable OSS",
+                                         "retryable": False}]})
+        return 2
+    root = Path(args.root).resolve()
+    assets_dir = root / "assets"
+    if not assets_dir.is_dir():
+        _print({"ok": True, "uploaded": 0, "skipped": 0, "note": "no local assets dir"})
+        return 0
+    mime_by_path = {}
+    try:
+        service = QuestionBankService(args.root)
+        try:
+            rows = service.conn.execute("SELECT path, mime FROM assets").fetchall()
+            mime_by_path = {r["path"]: r["mime"] for r in rows}
+        finally:
+            service.close()
+    except Exception:
+        pass  # DB 不可用时仍可按扩展名回填
+    suffix_mime = {".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp",
+                   ".webm": "audio/webm", ".ogg": "audio/ogg", ".m4a": "audio/mp4",
+                   ".mp3": "audio/mpeg", ".wav": "audio/wav"}
+    uploaded = skipped = 0
+    for p in sorted(assets_dir.rglob("*")):
+        if not p.is_file():
+            continue
+        key = str(p.relative_to(root)).replace("\\", "/")
+        if oss_store.object_exists(key):
+            skipped += 1
+            continue
+        mime = mime_by_path.get(key) or suffix_mime.get(p.suffix.lower(), "application/octet-stream")
+        oss_store.put_object(key, p.read_bytes(), mime)
+        uploaded += 1
+    _print({"ok": True, "uploaded": uploaded, "skipped": skipped,
+            "bucket": oss_store.describe()["bucket"]})
+    return 0
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     import uvicorn
 
@@ -128,6 +171,10 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("verify", help="恢复一致性验证")
     p.add_argument("--root", required=True)
     p.set_defaults(func=cmd_verify)
+
+    p = sub.add_parser("oss-sync", help="存量本地媒体一次性回填 OSS（key=path）")
+    p.add_argument("--root", required=True)
+    p.set_defaults(func=cmd_oss_sync)
 
     p = sub.add_parser("serve", help="启动 Review UI 服务")
     p.add_argument("--root", required=True)

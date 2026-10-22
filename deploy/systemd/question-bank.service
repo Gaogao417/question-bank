@@ -1,0 +1,22 @@
+[Unit]
+Description=Question Bank Review UI and Remote Ingestion API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=admin
+WorkingDirectory=/home/admin/question-bank
+EnvironmentFile=/home/admin/question-bank/.qb.env
+Environment=PYTHONUNBUFFERED=1
+ExecStartPre=/home/admin/question-bank/.venv/bin/python -m question_bank.deployment_check
+ExecStart=/home/admin/question-bank/.venv/bin/uvicorn serve_public:app --host 0.0.0.0 --port 8890 --timeout-graceful-shutdown 90
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=120
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

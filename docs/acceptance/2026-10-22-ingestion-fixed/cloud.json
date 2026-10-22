@@ -1,0 +1,243 @@
+{
+  "test_database": "qb_acceptance_88fc5ac6408549cc",
+  "object_prefix": "acceptance/88fc5ac6408549ccbe166ec6d701c135/",
+  "planned_sample_count": 30,
+  "concurrency": 1,
+  "measurement": "synchronous service call including OSS and DB; excludes package generation",
+  "arrival_model": "closed loop, sequential; no fixed offered rate",
+  "started_at": "2026-10-22T05:26:48Z",
+  "service_health": {
+    "http_status": 200,
+    "ok": true
+  },
+  "server_version": "PostgreSQL 18.6",
+  "samples": [
+    {
+      "request_id": "cloud-0",
+      "elapsed_ms": 1089.6814429997903,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-1",
+      "elapsed_ms": 1130.1952499998151,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-2",
+      "elapsed_ms": 1208.504272999562,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-3",
+      "elapsed_ms": 1016.9972469993809,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-4",
+      "elapsed_ms": 1922.6729210004123,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-5",
+      "elapsed_ms": 1730.342708000535,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-6",
+      "elapsed_ms": 1501.1141449995193,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-7",
+      "elapsed_ms": 1163.582113999837,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-8",
+      "elapsed_ms": 1057.6263909997579,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-9",
+      "elapsed_ms": 1290.3825450002842,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-10",
+      "elapsed_ms": 978.070521000518,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-11",
+      "elapsed_ms": 1022.5919320000685,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-12",
+      "elapsed_ms": 1023.0205950001618,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-13",
+      "elapsed_ms": 961.2108940000326,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-14",
+      "elapsed_ms": 992.3635439999998,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-15",
+      "elapsed_ms": 1071.9264229992405,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-16",
+      "elapsed_ms": 972.4571790002301,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-17",
+      "elapsed_ms": 1027.409942000304,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-18",
+      "elapsed_ms": 1020.0060030001623,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-19",
+      "elapsed_ms": 1045.4138869999952,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-20",
+      "elapsed_ms": 1091.3592370006882,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-21",
+      "elapsed_ms": 940.3086029997212,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-22",
+      "elapsed_ms": 1053.773626000293,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-23",
+      "elapsed_ms": 1022.6070420003452,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-24",
+      "elapsed_ms": 1068.6908040006529,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-25",
+      "elapsed_ms": 828.508392999538,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-26",
+      "elapsed_ms": 1049.552842000594,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-27",
+      "elapsed_ms": 989.8463210001864,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-28",
+      "elapsed_ms": 1006.6350890001559,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    },
+    {
+      "request_id": "cloud-29",
+      "elapsed_ms": 956.322349000402,
+      "asset_bytes": 4721,
+      "asset_count": 4,
+      "status": "accepted"
+    }
+  ],
+  "latency_ms": {
+    "p50": 1027.409942000304,
+    "p95": 1730.342708000535,
+    "p99": 1922.6729210004123
+  },
+  "total_measured_seconds": 33.233174263002184,
+  "service_time_throughput_per_second": 0.9027124451785633,
+  "cache": "first request creates four objects; later requests reuse keys with fresh byte verification; no byte-cache shortcut",
+  "lost_response_replay": "passed",
+  "rollback_and_retry": "passed",
+  "real_oss_hashes_verified": 4,
+  "backup_restore_all_tables_and_assets": "passed",
+  "business_table_count": 21,
+  "result": "passed",
+  "test_objects_removed": true,
+  "test_object_count": 4,
+  "test_database_removed": true
+}

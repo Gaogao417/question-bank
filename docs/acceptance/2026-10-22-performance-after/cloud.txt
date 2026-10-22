@@ -1,0 +1,31 @@
+{
+  "test_database": "qb_acceptance_2aa193886a9c49a3",
+  "object_prefix": "acceptance/2aa193886a9c49a39fac755e557501fa/",
+  "planned_sample_count": 30,
+  "concurrency": 1,
+  "measurement": "synchronous service call including OSS and DB; excludes package generation",
+  "arrival_model": "closed loop, sequential; no fixed offered rate",
+  "started_at": "2026-10-22T05:40:03Z",
+  "service_health": {
+    "http_status": 200,
+    "ok": true
+  },
+  "server_version": "PostgreSQL 18.6",
+  "latency_ms": {
+    "p50": 373.7052579999727,
+    "p95": 476.69662200132734,
+    "p99": 769.5683319998352
+  },
+  "total_measured_seconds": 11.428263758007233,
+  "service_time_throughput_per_second": 2.6250706699852326,
+  "cache": "first request creates four objects; later requests reuse keys with fresh byte verification; no byte-cache shortcut",
+  "lost_response_replay": "passed",
+  "rollback_and_retry": "passed",
+  "real_oss_hashes_verified": 4,
+  "backup_restore_all_tables_and_assets": "passed",
+  "business_table_count": 21,
+  "result": "passed",
+  "test_objects_removed": true,
+  "test_object_count": 4,
+  "test_database_removed": true
+}

@@ -1,0 +1,48 @@
+{
+  "test_database": "qb_acceptance_00ceec1e170e446a",
+  "object_prefix": "acceptance/00ceec1e170e446a803a88935f723e36/",
+  "sample_count": 30,
+  "concurrency": 1,
+  "measurement": "synchronous service call including OSS and DB; excludes package generation",
+  "arrival_model": "closed loop, sequential; no fixed offered rate",
+  "started_at": "2026-10-22T05:03:38Z",
+  "service_health": {
+    "http_status": 200,
+    "ok": true
+  },
+  "server_version": "PostgreSQL 18.6",
+  "unexpected_receipt": {
+    "submission_id": "cloud-0",
+    "status": "rejected",
+    "item_key": "2026-DEMO#q1",
+    "item_id": null,
+    "revision": null,
+    "content_hash": null,
+    "hash_version": null,
+    "replayed": false,
+    "review_url": null,
+    "errors": [
+      {
+        "code": "EVIDENCE_ASSET_UNAVAILABLE",
+        "item_key": "2026-DEMO#q1",
+        "field_path": "evidence[question]",
+        "message": "证据页资产不可用: sha256:35fea700a410f472f0a98b0d404978d43f523a7c7d4dabc53ac5d149a36ec8ba",
+        "fix_hint": "",
+        "retryable": false
+      },
+      {
+        "code": "EVIDENCE_ASSET_UNAVAILABLE",
+        "item_key": "2026-DEMO#q1",
+        "field_path": "evidence[solution]",
+        "message": "证据页资产不可用: sha256:43418fad1c6f4f7bbd84302554950592446d44f8f47fb28cb2b255ffac914f0f",
+        "fix_hint": "",
+        "retryable": false
+      }
+    ]
+  },
+  "result": "failed",
+  "error_type": "AssertionError",
+  "test_objects_removed": true,
+  "test_object_count": 4,
+  "test_database_removed": true
+}

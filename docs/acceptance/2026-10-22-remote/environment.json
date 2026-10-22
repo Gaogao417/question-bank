@@ -1,0 +1,7 @@
+{
+  "test_database": "qb_remote_test_e1811c37a8b54a5f",
+  "isolation": "dedicated temporary database; fake OSS in pytest",
+  "exit_code": 0,
+  "elapsed_seconds": 65.79421443599995,
+  "test_database_removed": true
+}

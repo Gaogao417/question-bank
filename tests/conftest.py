@@ -6,6 +6,20 @@ import psycopg
 from psycopg import sql
 from question_bank import db
 
+
+@pytest.fixture(autouse=True)
+def block_real_oss_clients(monkeypatch):
+    """Unit/regression suites use fake OSS; live probes run outside pytest.
+
+    A mistakenly inherited bucket must fail here, before any real network write.
+    Existing fake fixtures replace the public storage functions directly.
+    """
+    from question_bank import oss_store
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Real OSS clients are forbidden in pytest; use a fake or an isolated standalone probe")
+    monkeypatch.setattr(oss_store, "_bucket", forbidden)
+    monkeypatch.setattr(oss_store, "_public_bucket", forbidden)
+
 @pytest.fixture(autouse=True)
 def isolated_bank(monkeypatch):
     name='qb_test_'+uuid.uuid4().hex

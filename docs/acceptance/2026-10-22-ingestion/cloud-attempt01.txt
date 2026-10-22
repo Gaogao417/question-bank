@@ -1,0 +1,7 @@
+/home/admin/question-bank/tests/test_qb_manage_service.py:756: SyntaxWarning: invalid escape sequence '\c'
+  stem="下列结论正确的是（　）\n\nA. $a^4\cdot a^2=a^8$\n\nB. $a^4\cdot a^2=a^6$\n\nC. $a^4\cdot a^2=a^{16}$\n\nD. $a^4\cdot a^2=a^2$",
+Traceback (most recent call last):
+  File "/home/admin/question-bank/docs/acceptance/2026-10-22-ingestion/cloud_probe.py", line 73, in <module>
+    assert receipt['status'] == 'accepted'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

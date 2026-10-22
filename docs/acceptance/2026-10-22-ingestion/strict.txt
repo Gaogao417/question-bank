@@ -1,0 +1,37 @@
+......FF                                                                 [100%]
+=================================== FAILURES ===================================
+__________ test_registration_rejects_existing_object_with_wrong_hash ___________
+
+storage = (<question_bank.assets.AssetStore object at 0x785704ae5d00>, <tests.test_qb_oss_store.FakeOSS object at 0x785704ae5d30>)
+
+    @pytest.mark.xfail(strict=True, reason="INV-02: existing OSS key is trusted without verifying bytes")
+    def test_registration_rejects_existing_object_with_wrong_hash(storage):
+        store, fake = storage
+        first = store.register_bytes(_png_bytes())
+        fake.objects[first["path"]] = (_png_bytes(color=(0, 255, 0)), "image/png")
+>       with pytest.raises(QbError):
+E       Failed: DID NOT RAISE QbError
+
+tests/test_ingestion_storage_contract.py:86: Failed
+___________________ test_read_rejects_object_with_wrong_hash ___________________
+
+storage = (<question_bank.assets.AssetStore object at 0x785704ae6030>, <tests.test_qb_oss_store.FakeOSS object at 0x785704ae5ca0>)
+
+    @pytest.mark.xfail(strict=True, reason="INV-02: OSS read does not compare bytes with content-addressed key")
+    def test_read_rejects_object_with_wrong_hash(storage):
+        store, fake = storage
+        first = store.register_bytes(_png_bytes())
+        fake.objects[first["path"]] = (_png_bytes(color=(0, 255, 0)), "image/png")
+>       with pytest.raises(QbError):
+E       Failed: DID NOT RAISE QbError
+
+tests/test_ingestion_storage_contract.py:95: Failed
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/fastapi/testclient.py:1
+  /home/admin/question-bank/.venv/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_ingestion_storage_contract.py::test_registration_rejects_existing_object_with_wrong_hash
+FAILED tests/test_ingestion_storage_contract.py::test_read_rejects_object_with_wrong_hash

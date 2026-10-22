@@ -1,0 +1,347 @@
+{
+  "test_database": "qb_scale_309e2d1135434b03",
+  "prefix": "acceptance/309e2d1135434b038e59006380699549/",
+  "profiles": [
+    {
+      "image_side": 512,
+      "bytes_per_image": [
+        263058,
+        263055,
+        263054,
+        263056
+      ],
+      "concurrency": 1,
+      "samples": [
+        {
+          "ms": 740.9058989996993,
+          "stages": {
+            "sql_ms": 64.73274900235992,
+            "lock_acquire_ms": 2.3297230000025593
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 674.2135559998133,
+          "stages": {
+            "sql_ms": 56.92810399887094,
+            "lock_acquire_ms": 2.3069509988999926
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 692.613141000038,
+          "stages": {
+            "sql_ms": 61.188486994069535,
+            "lock_acquire_ms": 2.3371019997284748
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 688.8784229995508,
+          "stages": {
+            "sql_ms": 56.19101899537782,
+            "lock_acquire_ms": 2.55646000005072
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 642.3178619988903,
+          "stages": {
+            "sql_ms": 56.147679995774524,
+            "lock_acquire_ms": 2.2864490001666127
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 708.4644890001073,
+          "stages": {
+            "sql_ms": 82.87425100388646,
+            "lock_acquire_ms": 4.59512500128767
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 691.8767639999714,
+          "stages": {
+            "sql_ms": 57.445431000815006,
+            "lock_acquire_ms": 2.328939001017716
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 678.3961680011998,
+          "stages": {
+            "sql_ms": 56.45128899413976,
+            "lock_acquire_ms": 2.35829400116927
+          },
+          "status": "accepted"
+        }
+      ],
+      "duration_seconds": 5.5182055340010265,
+      "throughput": 1.4497466523686233,
+      "p50_ms": 688.8784229995508,
+      "p95_ms": 740.9058989996993,
+      "ops": {
+        "get": 96,
+        "put": 0,
+        "head": 32
+      }
+    },
+    {
+      "image_side": 512,
+      "bytes_per_image": [
+        263058,
+        263055,
+        263054,
+        263056
+      ],
+      "concurrency": 4,
+      "samples": [
+        {
+          "ms": 717.4954150013946,
+          "stages": {
+            "sql_ms": 66.63115300216305,
+            "lock_acquire_ms": 2.657032000570325
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 3452.750440001182,
+          "stages": {
+            "sql_ms": 53.77809699893987,
+            "lock_acquire_ms": 2.1425689992611296
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 2113.2165219987655,
+          "stages": {
+            "sql_ms": 63.43553199621965,
+            "lock_acquire_ms": 2.475470999343088
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 2778.2565230008913,
+          "stages": {
+            "sql_ms": 51.55289399954199,
+            "lock_acquire_ms": 2.000327000132529
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 679.6155980009644,
+          "stages": {
+            "sql_ms": 63.3232729996962,
+            "lock_acquire_ms": 2.5406740005564643
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 2769.7178880007414,
+          "stages": {
+            "sql_ms": 68.45918400358642,
+            "lock_acquire_ms": 2.5487689999863505
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 2728.4562610002467,
+          "stages": {
+            "sql_ms": 59.17982500614016,
+            "lock_acquire_ms": 2.5376320008945186
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 2735.3700019993994,
+          "stages": {
+            "sql_ms": 46.52414500560553,
+            "lock_acquire_ms": 1.9879259998560883
+          },
+          "status": "accepted"
+        }
+      ],
+      "duration_seconds": 5.514228345000447,
+      "throughput": 1.4507922957621646,
+      "p50_ms": 2728.4562610002467,
+      "p95_ms": 3452.750440001182,
+      "ops": {
+        "get": 96,
+        "put": 0,
+        "head": 32
+      }
+    },
+    {
+      "image_side": 1024,
+      "bytes_per_image": [
+        1051108,
+        1051106,
+        1051111,
+        1051108
+      ],
+      "concurrency": 1,
+      "samples": [
+        {
+          "ms": 1767.137155000455,
+          "stages": {
+            "sql_ms": 73.54331700116745,
+            "lock_acquire_ms": 2.931770999566652
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 1766.0227899996244,
+          "stages": {
+            "sql_ms": 69.04291399223439,
+            "lock_acquire_ms": 2.8108599999541184
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 1747.2828999998455,
+          "stages": {
+            "sql_ms": 74.94473500264576,
+            "lock_acquire_ms": 2.8787810006178916
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 1813.71444800061,
+          "stages": {
+            "sql_ms": 68.56043500010855,
+            "lock_acquire_ms": 2.864579000743106
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 1721.4713869998377,
+          "stages": {
+            "sql_ms": 68.94428900341154,
+            "lock_acquire_ms": 2.9495399994630134
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 1782.8537240002333,
+          "stages": {
+            "sql_ms": 103.67791700082307,
+            "lock_acquire_ms": 5.5842290003056405
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 1854.1972180009907,
+          "stages": {
+            "sql_ms": 68.27134800005297,
+            "lock_acquire_ms": 2.8060120002919575
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 1770.9109900006297,
+          "stages": {
+            "sql_ms": 68.52967599479598,
+            "lock_acquire_ms": 2.8032459995301906
+          },
+          "status": "accepted"
+        }
+      ],
+      "duration_seconds": 14.224060592001479,
+      "throughput": 0.562427300436177,
+      "p50_ms": 1767.137155000455,
+      "p95_ms": 1854.1972180009907,
+      "ops": {
+        "get": 96,
+        "put": 0,
+        "head": 32
+      }
+    },
+    {
+      "image_side": 1024,
+      "bytes_per_image": [
+        1051108,
+        1051106,
+        1051111,
+        1051108
+      ],
+      "concurrency": 4,
+      "samples": [
+        {
+          "ms": 1776.9107809999696,
+          "stages": {
+            "sql_ms": 68.99813900054141,
+            "lock_acquire_ms": 2.759891000096104
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 3546.15942899909,
+          "stages": {
+            "sql_ms": 61.3713300008385,
+            "lock_acquire_ms": 2.4709250010346295
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 6306.810500000211,
+          "stages": {
+            "sql_ms": 73.41491199986194,
+            "lock_acquire_ms": 2.955669999209931
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 8060.668072001135,
+          "stages": {
+            "sql_ms": 63.29427699711232,
+            "lock_acquire_ms": 2.4060650011961116
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 8049.960063999606,
+          "stages": {
+            "sql_ms": 63.54985700272664,
+            "lock_acquire_ms": 2.65422400116222
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 8031.628368999009,
+          "stages": {
+            "sql_ms": 58.0375460031064,
+            "lock_acquire_ms": 2.3747329996695044
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 7017.805486000725,
+          "stages": {
+            "sql_ms": 64.06821999917156,
+            "lock_acquire_ms": 2.768004000245128
+          },
+          "status": "accepted"
+        },
+        {
+          "ms": 7008.231124000304,
+          "stages": {
+            "sql_ms": 58.252994991562446,
+            "lock_acquire_ms": 2.3758520001138095
+          },
+          "status": "accepted"
+        }
+      ],
+      "duration_seconds": 15.069442231999346,
+      "throughput": 0.5308756539782425,
+      "p50_ms": 7008.231124000304,
+      "p95_ms": 8060.668072001135,
+      "ops": {
+        "get": 96,
+        "put": 0,
+        "head": 32
+      }
+    }
+  ],
+  "model": "one shared service, closed loop, 8 requests per profile; synthetic noise PNG, no model calls"
+}

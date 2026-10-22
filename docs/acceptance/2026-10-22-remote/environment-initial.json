@@ -1,0 +1,7 @@
+{
+  "test_database": "qb_remote_test_1e07183d2f104c82",
+  "isolation": "dedicated temporary database, but real OSS inherited by mistake; see acceptance incident",
+  "exit_code": 1,
+  "elapsed_seconds": 132.40381450799998,
+  "test_database_removed": true
+}

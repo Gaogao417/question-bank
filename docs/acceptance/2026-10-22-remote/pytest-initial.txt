@@ -1,0 +1,232 @@
+.........................F.............................................. [ 33%]
+.........................................F.....F........................ [ 67%]
+F.F.............................................................F....    [100%]
+=================================== FAILURES ===================================
+__________ test_readonly_sqlite_import_preserves_facts_and_sequences ___________
+
+tmp_path = PosixPath('/tmp/pytest-of-admin/pytest-0/test_readonly_sqlite_import_pr0')
+
+    def test_readonly_sqlite_import_preserves_facts_and_sequences(tmp_path):
+        svc=QuestionBankService(tmp_path/'original')
+        try:
+            svc.submit_candidate(make_package(tmp_path))
+            svc.record_review('2026-DEMO-Q021',{'decision':'approved','base_revision':1,'operation_id':'review-original'})
+            svc.publish('2026-DEMO-Q021',{'revision':1,'expected_previous':None,'operation_id':'publish-original'})
+            backup.backup(svc.root,tmp_path/'snapshot')
+        finally:svc.close()
+        snapshot=json.loads((tmp_path/'snapshot/database.json').read_text())
+        legacy=tmp_path/'legacy';legacy.mkdir()
+        for name in ('assets','inputs','exports'):
+            if (tmp_path/'snapshot'/name).exists():shutil.copytree(tmp_path/'snapshot'/name,legacy/name)
+        # Build a standalone SQLite fixture with the source schema's column names.
+        with sqlite3.connect(legacy/'bank.sqlite3') as conn:
+            for table,rows in snapshot['tables'].items():
+                if rows:
+                    columns=list(rows[0])
+                    conn.execute(f'CREATE TABLE "{table}" ('+', '.join(f'"{c}"' for c in columns)+')')
+                    conn.executemany(f'INSERT INTO "{table}" VALUES ('+','.join('?' for _ in columns)+')',[list(r.values()) for r in rows])
+                else:conn.execute(f'CREATE TABLE "{table}" (unused TEXT)')
+        before=hashlib.sha256((legacy/'bank.sqlite3').read_bytes()).hexdigest()
+>       result=import_sqlite(legacy,tmp_path/'imported')
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_postgresql.py:82: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+question_bank/import_sqlite.py:30: in import_sqlite
+    result=backup.restore(temp,root)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+question_bank/backup.py:119: in restore
+    verify(source, full=True)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+root = PosixPath('/tmp/qb-import-96437t_g'), full = True
+
+    def verify(root: str | Path, *, full: bool = False) -> dict[str, Any]:
+        root=Path(root).resolve()
+        oss_snapshot=None
+        if (root/'database.json').is_file():
+            snapshot=json.loads((root/'database.json').read_text())
+            if snapshot.get('format') != 'question-bank-postgresql/v1': raise ValueError('Unsupported snapshot')
+            oss_snapshot=snapshot.get('oss')
+            for name, digest in snapshot['files'].items():
+                path=_safe_file(root,name)
+                if not path.is_file():
+                    raise QbError([error('RESTORE_MEDIA_MISSING',f'Missing file: {name}',retryable=False)])
+                if hashlib.sha256(path.read_bytes()).hexdigest()!=digest:
+                    raise QbError([error('RESTORE_MEDIA_CORRUPT',f'Changed file: {name}',retryable=False)])
+            data=snapshot['tables']
+        else:
+            oss_snapshot=oss_store.describe() if oss_store.enabled() else None
+            conn=db_mod.connect(root)
+            try: data={table:conn.execute(sql.SQL('SELECT * FROM {}').format(sql.Identifier(table))).fetchall() for table in TABLES}
+            finally: conn.close()
+        for asset in data['assets']:
+            if oss_snapshot is not None:
+                # OSS 模式：key 即 path；full 时下载复核 sha256（restore 前强制）。
+                if not oss_store.object_exists(asset['path']):
+                    raise QbError([error('RESTORE_MEDIA_MISSING',f"Missing OSS object: {asset['path']}",retryable=False)])
+                if full and 'sha256:'+hashlib.sha256(oss_store.get_object(asset['path'])).hexdigest()!=asset['sha256']:
+                    raise QbError([error('RESTORE_MEDIA_CORRUPT',f"Changed OSS object: {asset['path']}",retryable=False)])
+                continue
+            path=_safe_file(root,asset['path'])
+            if not path.is_file():
+>               raise QbError([error('RESTORE_MEDIA_MISSING',f"Missing media: {asset['path']}",retryable=False)])
+E               question_bank.errors.QbError: RESTORE_MEDIA_MISSING(): Missing media: assets/2c/2cb86435b1d35a75dfe0d4af6064a6d882406ab6d806ac818d5a3b50a0d7f0d1.png
+
+question_bank/backup.py:86: QbError
+_________ TestPersistenceAndBackup.test_restore_detects_missing_media __________
+
+self = <tests.test_qb_manage_service.TestPersistenceAndBackup object at 0x77f122feaa80>
+service = <question_bank.service.QuestionBankService object at 0x77f1210a4710>
+submitted = {'content_hash': 'sha256:ba044ce8cd05aff5c7493a02c55ac590c53090836fa5ee7d6a798638b61b2608', 'errors': [], 'hash_version': 1, 'item_id': '2026-DEMO-Q021', ...}
+tmp_path = PosixPath('/tmp/pytest-of-admin/pytest-0/test_restore_detects_missing_m0')
+
+    def test_restore_detects_missing_media(self, service, submitted, tmp_path):
+        dest = tmp_path / "backup-2"
+        backup_mod.backup(service.root, dest)
+        for png in (dest / "assets").rglob("*.png"):
+            png.unlink()
+>       with pytest.raises(QbError) as exc_info:
+E       Failed: DID NOT RAISE QbError
+
+tests/test_qb_manage_service.py:684: Failed
+______ TestAcceptanceRegressionFixes.test_backup_detects_corrupted_media _______
+
+self = <tests.test_qb_manage_service.TestAcceptanceRegressionFixes object at 0x77f122feb650>
+service = <question_bank.service.QuestionBankService object at 0x77f121163b90>
+submitted = {'content_hash': 'sha256:ba044ce8cd05aff5c7493a02c55ac590c53090836fa5ee7d6a798638b61b2608', 'errors': [], 'hash_version': 1, 'item_id': '2026-DEMO-Q021', ...}
+tmp_path = PosixPath('/tmp/pytest-of-admin/pytest-0/test_backup_detects_corrupted_0')
+
+    def test_backup_detects_corrupted_media(self, service, submitted, tmp_path):
+        dest = tmp_path / "backup-corrupt"
+        backup_mod.backup(service.root, dest)
+        for png in (dest / "assets").rglob("*.png"):
+            png.write_bytes(b"corrupted image bytes")
+            break
+>       with pytest.raises(QbError) as exc_info:
+E       Failed: DID NOT RAISE QbError
+
+tests/test_qb_manage_service.py:799: Failed
+_ TestDirectoryBadgesAndBackup.test_backup_restore_includes_notes_and_recording _
+
+self = <tests.test_qb_manage_teaching.TestDirectoryBadgesAndBackup object at 0x77f122ce5520>
+svc = <question_bank.service.QuestionBankService object at 0x77f120fb72c0>
+tmp_path = PosixPath('/tmp/pytest-of-admin/pytest-0/test_backup_restore_includes_n0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x77f120fb5f40>
+
+    def test_backup_restore_includes_notes_and_recording(self, svc, tmp_path, monkeypatch):
+        created = svc.create_note("2026-DEMO-Q021", {
+            "subquestion_id": "sq1", "operation_id": "tn-c17"})
+        note_id = created["note_id"]
+        monkeypatch.setattr(ai, "transcribe_audio",
+                            lambda d, c, meta=None: "转写")
+        svc.save_recording(note_id, 1, "tn-rec6", AUDIO_BYTES, "audio/wav")
+        dest = tmp_path / "backup"
+        backup_mod.backup(svc.root, dest)
+        restore_root = tmp_path / "restored"
+        backup_mod.restore(dest, restore_root)
+        restored = QuestionBankService(restore_root)
+        try:
+            note = note_of(restored, "2026-DEMO-Q021", note_id)
+            assert note["transcript"] == "转写"
+>           assert (restored.root / restored.asset_rel_path(note["audio_asset_id"])).is_file()
+E           AssertionError: assert False
+E            +  where False = is_file()
+E            +    where is_file = (PosixPath('/tmp/pytest-of-admin/pytest-0/test_backup_restore_includes_n0/restored') / 'assets/64/643f8a8dc8bd9c19225afffad2becfec5426180b3749cb208abdf1a6c8354efc.wav').is_file
+E            +      where PosixPath('/tmp/pytest-of-admin/pytest-0/test_backup_restore_includes_n0/restored') = <question_bank.service.QuestionBankService object at 0x77f1210bf8f0>.root
+E            +      and   'assets/64/643f8a8dc8bd9c19225afffad2becfec5426180b3749cb208abdf1a6c8354efc.wav' = asset_rel_path('sha256:643f8a8dc8bd9c19225afffad2becfec5426180b3749cb208abdf1a6c8354efc')
+E            +        where asset_rel_path = <question_bank.service.QuestionBankService object at 0x77f1210bf8f0>.asset_rel_path
+
+tests/test_qb_manage_teaching.py:549: AssertionError
+_________________ TestTeachingApi.test_audio_upload_and_fetch __________________
+
+self = <tests.test_qb_manage_teaching.TestTeachingApi object at 0x77f122ce5d30>
+client_svc = <starlette.testclient.TestClient object at 0x77f1212242c0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x77f121ac3d70>
+
+    def test_audio_upload_and_fetch(self, client_svc, monkeypatch):
+        item = "2026-DEMO-Q021"
+        created = client_svc.post(f"/api/items/{item}/notes", json={
+            "subquestion_id": "sq1", "operation_id": "api-n10"}).json()
+        note_id = created["note_id"]
+        monkeypatch.setattr(ai, "transcribe_audio",
+                            lambda d, c, meta=None: "接口转写")
+        response = client_svc.post(
+            f"/api/notes/{note_id}/audio?base_version=1&operation_id=api-rec1",
+            content=AUDIO_BYTES, headers={"Content-Type": "audio/wav"})
+        receipt = response.json()
+        assert receipt["status"] == "transcribed"
+        audio = client_svc.get(f"/api/assets/{receipt['asset_id']}/audio")
+>       assert audio.status_code == 200 and audio.content == AUDIO_BYTES
+E       assert (404 == 200)
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/test_qb_manage_teaching.py:608: AssertionError
+__________________ test_asset_escape_and_missing_are_rejected __________________
+
+tmp_path = PosixPath('/tmp/pytest-of-admin/pytest-0/test_asset_escape_and_missing_0')
+
+    def test_asset_escape_and_missing_are_rejected(tmp_path):
+        package = make_package(tmp_path / 'packages')
+        path = package / 'candidate.json'
+        payload = json.loads(path.read_text())
+        for ref in ['../outside.png', '/etc/passwd', 'asset:existing', 'missing.png']:
+            payload['images'][0]['asset']['ref'] = ref
+            path.write_text(json.dumps(payload))
+            target = tmp_path / str(len(list(tmp_path.iterdir())))
+            target.mkdir()
+            with pytest.raises(QbError) as exc:
+                remote.unpack(remote.package_bytes(package), target)
+>           assert exc.value.errors[0]['code'] in {'UPLOAD_ASSET_MISSING', 'SCHEMA_INVALID'}
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           AssertionError: assert 'SCHEMA_INVALID' == 'UPLOAD_ASSET_MISSING'
+E             
+E             - UPLOAD_ASSET_MISSING
+E             + SCHEMA_INVALID
+
+tests/test_remote_ingestion.py:59: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/fastapi/testclient.py:1
+  /home/admin/question-bank/.venv/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+tests/test_qb_manage_api.py: 11 warnings
+tests/test_qb_manage_catalog.py: 3 warnings
+tests/test_qb_manage_teaching.py: 3 warnings
+tests/test_qb_oss_store.py: 1 warning
+tests/test_qb_revision_assist.py: 4 warnings
+tests/test_remote_ingestion.py: 7 warnings
+  /home/admin/question-bank/question_bank/server.py:52: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+tests/test_qb_manage_api.py: 11 warnings
+tests/test_qb_manage_catalog.py: 3 warnings
+tests/test_qb_manage_teaching.py: 3 warnings
+tests/test_qb_oss_store.py: 1 warning
+tests/test_qb_revision_assist.py: 4 warnings
+tests/test_remote_ingestion.py: 7 warnings
+  /home/admin/question-bank/.venv/lib/python3.12/site-packages/fastapi/applications.py:4723: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)  # ty: ignore[deprecated]
+
+tests/test_remote_ingestion.py::test_duplicates_and_symlinks
+  /usr/lib/python3.12/zipfile/__init__.py:1620: UserWarning: Duplicate name: 'candidate.json'
+    return self._open_to_write(zinfo, force_zip64=force_zip64)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_postgresql.py::test_readonly_sqlite_import_preserves_facts_and_sequences
+FAILED tests/test_qb_manage_service.py::TestPersistenceAndBackup::test_restore_detects_missing_media
+FAILED tests/test_qb_manage_service.py::TestAcceptanceRegressionFixes::test_backup_detects_corrupted_media
+FAILED tests/test_qb_manage_teaching.py::TestDirectoryBadgesAndBackup::test_backup_restore_includes_notes_and_recording
+FAILED tests/test_qb_manage_teaching.py::TestTeachingApi::test_audio_upload_and_fetch
+FAILED tests/test_remote_ingestion.py::test_asset_escape_and_missing_are_rejected
