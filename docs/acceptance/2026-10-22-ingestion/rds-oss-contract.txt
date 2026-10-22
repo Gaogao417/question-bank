@@ -1,0 +1,189 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_________________ test_candidate_with_oss_evidence_is_accepted _________________
+
+fake_oss = <tests.test_qb_oss_store.FakeOSS object at 0x712f6a590aa0>
+tmp_path = PosixPath('/tmp/pytest-of-admin/pytest-12/test_candidate_with_oss_eviden0')
+
+    @pytest.mark.xfail(strict=True, reason="Cloud acceptance: evidence validation still checks local files")
+    def test_candidate_with_oss_evidence_is_accepted(fake_oss, tmp_path):
+        svc = QuestionBankService(tmp_path / "bank")
+        try:
+            receipt = svc.submit_candidate(make_package(tmp_path / "packages"))
+            assert len(fake_oss.objects) == 4
+>           assert receipt["status"] == "accepted", receipt
+E           AssertionError: {'submission_id': 'sub-001', 'status': 'rejected', 'item_key': '2026-DEMO#q21', 'item_id': None, ...}
+E           assert 'rejected' == 'accepted'
+E             
+E             - accepted
+E             + rejected
+
+tests/test_ingestion_rds_oss_contract.py:15: AssertionError
+_________ test_identical_rejected_submission_replays_original_receipt __________
+
+self = <question_bank.service.QuestionBankService object at 0x712f693bb440>
+envelope = CandidateEnvelope(schema='question_bank_candidate/v1', submission_id='sub-001', base_revision=None, paper=CandidatePap...Evidence(role='solution', asset=CandidateAssetRef(ref='sources/page-005.png', sha256=None), page_number=5)], issues=[])
+item_key = '2026-DEMO#q21'
+errors = [{'code': 'ANSWER_UNDECLARED_EMPTY', 'item_key': '2026-DEMO#q21', 'field_path': 'body.answer', 'message': '答案为空且未声明缺答案疑点；不允许静默缺失', ...}]
+
+    def _persist_rejected_submission(
+        self,
+        envelope: CandidateEnvelope,
+        item_key: str,
+        errors: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        receipt = {
+            "submission_id": envelope.submission_id,
+            "status": "rejected",
+            "item_key": item_key,
+            "item_id": None,
+            "revision": None,
+            "content_hash": None,
+            "hash_version": None,
+            "replayed": False,
+            "review_url": None,
+            "errors": errors,
+        }
+        request_hash = "rejected:" + canonical_json(
+            {"submission_id": envelope.submission_id, "errors": errors}
+        )
+        self.conn.begin_write()
+        try:
+>           self.conn.execute(
+                "INSERT INTO submissions(submission_id, request_hash, item_key,"
+                " status, receipt, errors, created_at)"
+                " VALUES (%s,%s,%s,%s,%s,%s,%s)",
+                (
+                    envelope.submission_id,
+                    request_hash,
+                    item_key,
+                    "rejected",
+                    canonical_json(receipt),
+                    canonical_json(errors),
+                    db_mod.utc_now(),
+                ),
+            )
+
+question_bank/service.py:382: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <question_bank.db.Connection [BAD] at 0x712f693bb8c0>
+query = 'INSERT INTO submissions(submission_id, request_hash, item_key, status, receipt, errors, created_at) VALUES (%s,%s,%s,%s,%s,%s,%s)'
+params = ('sub-001', 'rejected:{"errors":[{"code":"ANSWER_UNDECLARED_EMPTY","field_path":"body.answer","fix_hint":"补齐答案，或声明 mis...ssing_answer/unknown_answer 疑点","item_key":"2026-DEMO#q21","message":"答案为空且未声明缺答案疑点；不允许静默缺失","retryable":false}]', ...)
+prepare = None, binary = False
+
+    def execute(
+        self,
+        query: Query,
+        params: Params | None = None,
+        *,
+        prepare: bool | None = None,
+        binary: bool = False,
+    ) -> Cursor[Row]:
+        """Execute a query and return a cursor to read its results."""
+        try:
+            cur = self.cursor()
+            if binary:
+                cur.format = BINARY
+    
+            if isinstance(query, Template):
+                if params is not None:
+                    raise TypeError(
+                        "'execute()' with string template query doesn't support parameters"
+                    )
+                return cur.execute(query, prepare=prepare)
+            else:
+                return cur.execute(query, params, prepare=prepare)
+        except e._NO_TRACEBACK as ex:
+>           raise ex.with_traceback(None)
+E           psycopg.errors.UniqueViolation: duplicate key value violates unique constraint "submissions_pkey"
+E           DETAIL:  Key (submission_id)=(sub-001) already exists.
+
+.venv/lib/python3.12/site-packages/psycopg/connection.py:304: UniqueViolation
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = PosixPath('/tmp/pytest-of-admin/pytest-12/test_identical_rejected_submis0')
+
+    @pytest.mark.xfail(strict=True, reason="INV-04: replay of identical rejected input raises SUBMISSION_ID_REUSED")
+    def test_identical_rejected_submission_replays_original_receipt(tmp_path):
+        svc = QuestionBankService(tmp_path / "bank", oss=False)
+        try:
+            package = make_package(tmp_path / "packages", answer="")
+            first = svc.submit_candidate(package)
+            assert first["status"] == "rejected"
+>           replay = svc.submit_candidate(package)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_ingestion_rds_oss_contract.py:27: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+question_bank/service.py:62: in wrapper
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+question_bank/service.py:246: in submit_candidate
+    receipt = self._persist_rejected_submission(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <question_bank.service.QuestionBankService object at 0x712f693bb440>
+envelope = CandidateEnvelope(schema='question_bank_candidate/v1', submission_id='sub-001', base_revision=None, paper=CandidatePap...Evidence(role='solution', asset=CandidateAssetRef(ref='sources/page-005.png', sha256=None), page_number=5)], issues=[])
+item_key = '2026-DEMO#q21'
+errors = [{'code': 'ANSWER_UNDECLARED_EMPTY', 'item_key': '2026-DEMO#q21', 'field_path': 'body.answer', 'message': '答案为空且未声明缺答案疑点；不允许静默缺失', ...}]
+
+    def _persist_rejected_submission(
+        self,
+        envelope: CandidateEnvelope,
+        item_key: str,
+        errors: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        receipt = {
+            "submission_id": envelope.submission_id,
+            "status": "rejected",
+            "item_key": item_key,
+            "item_id": None,
+            "revision": None,
+            "content_hash": None,
+            "hash_version": None,
+            "replayed": False,
+            "review_url": None,
+            "errors": errors,
+        }
+        request_hash = "rejected:" + canonical_json(
+            {"submission_id": envelope.submission_id, "errors": errors}
+        )
+        self.conn.begin_write()
+        try:
+            self.conn.execute(
+                "INSERT INTO submissions(submission_id, request_hash, item_key,"
+                " status, receipt, errors, created_at)"
+                " VALUES (%s,%s,%s,%s,%s,%s,%s)",
+                (
+                    envelope.submission_id,
+                    request_hash,
+                    item_key,
+                    "rejected",
+                    canonical_json(receipt),
+                    canonical_json(errors),
+                    db_mod.utc_now(),
+                ),
+            )
+            self.conn.execute("COMMIT")
+        except db_mod.IntegrityError as exc:
+            self.conn.execute("ROLLBACK")
+>           raise ReceiptError([
+                error("SUBMISSION_ID_REUSED", str(exc), item_key=item_key,
+                      retryable=False)
+            ]) from exc
+E           question_bank.errors.ReceiptError: SUBMISSION_ID_REUSED(2026-DEMO#q21): duplicate key value violates unique constraint "submissions_pkey"
+E           DETAIL:  Key (submission_id)=(sub-001) already exists.
+
+question_bank/service.py:399: ReceiptError
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/fastapi/testclient.py:1
+  /home/admin/question-bank/.venv/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_ingestion_rds_oss_contract.py::test_candidate_with_oss_evidence_is_accepted
+FAILED tests/test_ingestion_rds_oss_contract.py::test_identical_rejected_submission_replays_original_receipt
+2 failed, 1 warning in 1.20s

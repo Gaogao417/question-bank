@@ -1,0 +1,19 @@
+{
+  "test_database": "qb_acceptance_1690fdefae7948ea",
+  "object_prefix": "acceptance/1690fdefae7948eab8518f8db96285cf/",
+  "sample_count": 30,
+  "concurrency": 1,
+  "measurement": "synchronous service call including OSS and DB; excludes package generation",
+  "arrival_model": "closed loop, sequential; no fixed offered rate",
+  "started_at": "2026-10-22T05:03:04Z",
+  "service_health": {
+    "http_status": 200,
+    "ok": true
+  },
+  "server_version": "PostgreSQL 18.6",
+  "result": "failed",
+  "error_type": "AssertionError",
+  "test_objects_removed": true,
+  "test_object_count": 4,
+  "test_database_removed": true
+}

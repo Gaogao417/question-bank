@@ -1,0 +1,6 @@
+{
+  "question_bank/assets.py": "85785e179b73ff0417a8ce4a003442a1e39723033b9d33be26ec434de70c7e32",
+  "question_bank/service.py": "406da1443cbdf824b1d3944c6517834e2a5f6ec5429aacd868de920954b02ed3",
+  "tests/test_ingestion_storage_contract.py": "bdc00fe1feb98ecd3f0f1e8ae702bc4b3b177e5987a283d470b7e722b8b0f98d",
+  "tests/test_ingestion_rds_oss_contract.py": "1375c4631722666e672396acd91e09b36a5c915cfaeddb45d2ebf2b4905edbd6"
+}

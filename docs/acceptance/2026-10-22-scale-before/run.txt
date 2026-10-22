@@ -1,0 +1,86 @@
+{
+  "test_database": "qb_scale_309e2d1135434b03",
+  "prefix": "acceptance/309e2d1135434b038e59006380699549/",
+  "profiles": [
+    {
+      "image_side": 512,
+      "bytes_per_image": [
+        263058,
+        263055,
+        263054,
+        263056
+      ],
+      "concurrency": 1,
+      "duration_seconds": 5.5182055340010265,
+      "throughput": 1.4497466523686233,
+      "p50_ms": 688.8784229995508,
+      "p95_ms": 740.9058989996993,
+      "ops": {
+        "get": 96,
+        "put": 0,
+        "head": 32
+      }
+    },
+    {
+      "image_side": 512,
+      "bytes_per_image": [
+        263058,
+        263055,
+        263054,
+        263056
+      ],
+      "concurrency": 4,
+      "duration_seconds": 5.514228345000447,
+      "throughput": 1.4507922957621646,
+      "p50_ms": 2728.4562610002467,
+      "p95_ms": 3452.750440001182,
+      "ops": {
+        "get": 96,
+        "put": 0,
+        "head": 32
+      }
+    },
+    {
+      "image_side": 1024,
+      "bytes_per_image": [
+        1051108,
+        1051106,
+        1051111,
+        1051108
+      ],
+      "concurrency": 1,
+      "duration_seconds": 14.224060592001479,
+      "throughput": 0.562427300436177,
+      "p50_ms": 1767.137155000455,
+      "p95_ms": 1854.1972180009907,
+      "ops": {
+        "get": 96,
+        "put": 0,
+        "head": 32
+      }
+    },
+    {
+      "image_side": 1024,
+      "bytes_per_image": [
+        1051108,
+        1051106,
+        1051111,
+        1051108
+      ],
+      "concurrency": 4,
+      "duration_seconds": 15.069442231999346,
+      "throughput": 0.5308756539782425,
+      "p50_ms": 7008.231124000304,
+      "p95_ms": 8060.668072001135,
+      "ops": {
+        "get": 96,
+        "put": 0,
+        "head": 32
+      }
+    }
+  ],
+  "model": "one shared service, closed loop, 8 requests per profile; synthetic noise PNG, no model calls",
+  "result": "passed",
+  "objects_removed": true,
+  "database_removed": true
+}

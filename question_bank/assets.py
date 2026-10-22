@@ -61,7 +61,6 @@ class AssetStore:
         self.dir.mkdir(parents=True, exist_ok=True)
         # oss=None 跟随环境变量；显式 False 用于临时/预检根（不往真实 bucket 写）。
         self.oss = oss_store.enabled() if oss is None else oss
-        self._bytes_lru: dict[str, bytes] = {}
 
     # ------------------------------------------------------------------
     # 登记
@@ -115,8 +114,16 @@ class AssetStore:
     def _persist(self, key: str, raw: bytes, mime: str) -> None:
         """校验后的字节落位。key 即 DB path；内容寻址不可变，幂等。"""
         if self.oss:
-            if not oss_store.object_exists(key):
-                oss_store.put_object(key, raw, mime)
+            # GET proves both existence and integrity; a preceding HEAD adds a
+            # round trip without protecting the subsequent read from deletion.
+            try:
+                self._load_bytes(key)
+                return
+            except QbError as exc:
+                if not exc.errors or any(e['code'] != 'ASSET_FILE_MISSING' for e in exc.errors):
+                    raise
+            oss_store.put_object(key, raw, mime)
+            self._load_bytes(key)
             return
         target = self.root / key
         if not target.exists():
@@ -134,11 +141,20 @@ class AssetStore:
                 handle.close()
                 if os.path.exists(handle.name):
                     os.unlink(handle.name)
+        self._load_bytes(key)
+
+    @staticmethod
+    def _verify_bytes(key: str, raw: bytes) -> None:
+        expected = "sha256:" + Path(key).stem
+        if sha256_bytes(raw) != expected:
+            raise QbError([error(
+                "ASSET_HASH_MISMATCH", f"资产内容摘要不符: {key}",
+                fix_hint="从可信备份恢复原始字节", retryable=False,
+            )])
 
     def _load_bytes(self, key: str, *, cache: bool = False) -> bytes:
         """读取资产字节；OSS 模式从对象存储取，否则读本地文件。"""
-        if cache and key in self._bytes_lru:
-            return self._bytes_lru[key]
+        # Re-read storage even for a warm cache: objects may be replaced/deleted.
         if self.oss:
             raw = oss_store.get_object(key)
         else:
@@ -151,11 +167,7 @@ class AssetStore:
                           retryable=False)
                 ])
             raw = path.read_bytes()
-        if cache:
-            # 小容量 FIFO：批量渲染（导出）同图复用，避免重复拉取。
-            self._bytes_lru[key] = raw
-            if len(self._bytes_lru) > 16:
-                self._bytes_lru.pop(next(iter(self._bytes_lru)))
+        self._verify_bytes(key, raw)
         return raw
 
     def _exists(self, key: str) -> bool:
@@ -287,15 +299,8 @@ class AssetStore:
             raise QbError([
                 error("ASSET_NOT_FOUND", f"资产不存在: {asset_id}", retryable=False)
             ])
-        if not self._exists(row_path):
-            raise QbError([
-                error(
-                    "ASSET_FILE_MISSING",
-                    f"资产记录存在但媒体缺失: {asset_id}",
-                    fix_hint="从备份恢复媒体目录，不要用重新生成的内容顶替",
-                    retryable=False,
-                )
-            ])
+        # _lookup_path already checked existence. Consumers still read and
+        # verify bytes, detecting deletion/replacement after this lookup.
         return row_path
 
     def _lookup_path(self, asset_id: str) -> str | None:
@@ -329,6 +334,13 @@ class AssetStore:
     ) -> bytes:
         """渲染数据库登记路径（assets/…）指向的资产；与 render 共用变换。"""
         raw = self._load_bytes(rel_path, cache=True)
+        return self._render_bytes(raw, rel_path, crop_px=crop_px, rotate=rotate)
+
+    def _render_bytes(
+        self, raw: bytes, rel_path: str, *, crop_px: list[int] | None = None,
+        rotate: int = 0, validate_only: bool = False,
+    ) -> bytes:
+        """Share decoding and transforms; validation need not encode a PNG."""
         try:
             with Image.open(io.BytesIO(raw)) as image:
                 image.load()
@@ -348,6 +360,8 @@ class AssetStore:
                     image = image.crop((left, top, right, bottom))
                 if rotate:
                     image = image.rotate(-rotate, expand=True)
+                if validate_only:
+                    return b""
                 buffer = io.BytesIO()
                 image.save(buffer, format="PNG")
                 return buffer.getvalue()
@@ -365,8 +379,12 @@ class AssetStore:
 
     def validate_binding_renderable(self, binding: ImageBinding) -> None:
         """接收/保存前验证绑定可渲染（媒体存在、裁框在界内、可解码）。"""
-        self.render(
-            binding.resolved_source(),
+        if binding.resolved_source() != binding.asset_id:
+            self._load_bytes(self.asset_rel(binding.asset_id))
+        path = self.asset_rel(binding.resolved_source())
+        self._render_bytes(
+            self._load_bytes(path), path,
             crop_px=binding.crop_px,
             rotate=binding.rotate,
+            validate_only=True,
         )

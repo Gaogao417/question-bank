@@ -14,6 +14,7 @@ import json
 import re
 from question_bank import db as db_mod
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
 from pathlib import Path
 from typing import Any
@@ -102,11 +103,15 @@ class QuestionBankService(TeachingNotesMixin):
     # AI 候选接收
     # ==================================================================
 
-    @_write_locked
     def submit_candidate(
         self, package_dir: str | Path, *, actor_id: str = "cli"
     ) -> dict[str, Any]:
-        """接收一个候选包目录，返回幂等回执。"""
+        """接收候选包并返回幂等回执。
+
+        Media staging/validation is request-local and can overlap across calls.
+        Thread-local connections and the schema's transaction advisory lock
+        serialize authoritative revision/receipt decisions, including replays.
+        """
         package = Path(package_dir).expanduser().resolve()
         envelope_path = None
         for name in ("candidate.json", "candidate.yaml", "candidate.yml"):
@@ -205,7 +210,7 @@ class QuestionBankService(TeachingNotesMixin):
                 ))
         if ai_crop_errors:
             return self._persist_rejected_submission(
-                envelope, item_key, ai_crop_errors
+                envelope, item_key, ai_crop_errors, registered
             )
 
         # 资产行先入库（幂等），结构校验才能确认证据与媒体可引用。
@@ -244,7 +249,7 @@ class QuestionBankService(TeachingNotesMixin):
         if validation_errors:
             # 硬结构错误：拒绝且不创建半题。确定性拒绝持久化回执。
             receipt = self._persist_rejected_submission(
-                envelope, item_key, validation_errors
+                envelope, item_key, validation_errors, registered
             )
             return receipt
 
@@ -361,6 +366,7 @@ class QuestionBankService(TeachingNotesMixin):
         envelope: CandidateEnvelope,
         item_key: str,
         errors: list[dict[str, Any]],
+        registered: dict[str, dict[str, Any]],
     ) -> dict[str, Any]:
         receipt = {
             "submission_id": envelope.submission_id,
@@ -374,11 +380,24 @@ class QuestionBankService(TeachingNotesMixin):
             "review_url": None,
             "errors": errors,
         }
-        request_hash = "rejected:" + canonical_json(
-            {"submission_id": envelope.submission_id, "errors": errors}
-        )
+        request_hash = self._submission_request_hash(envelope, registered)
         self.conn.begin_write()
         try:
+            existing = self.conn.execute(
+                "SELECT * FROM submissions WHERE submission_id = %s",
+                (envelope.submission_id,),
+            ).fetchone()
+            if existing is not None:
+                if existing["request_hash"] == request_hash:
+                    self.conn.execute("COMMIT")
+                    replay = json.loads(existing["receipt"])
+                    replay["replayed"] = True
+                    return replay
+                raise ReceiptError([error(
+                    "SUBMISSION_ID_REUSED",
+                    "相同 submission_id 携带不同载荷，原回执保持不变",
+                    item_key=item_key, retryable=False,
+                )])
             self.conn.execute(
                 "INSERT INTO submissions(submission_id, request_hash, item_key,"
                 " status, receipt, errors, created_at)"
@@ -493,25 +512,53 @@ class QuestionBankService(TeachingNotesMixin):
                         fix_hint="在 images 中补充该 key 的绑定，或修正正文标记",
                     ))
 
-        for binding in content.images:
+        def check_binding(binding):
+            found = []
             try:
                 self.assets.validate_binding_renderable(binding)
             except QbError as exc:
                 for err in exc.errors:
                     err["item_key"] = item_key
                     err["field_path"] = f"images[{binding.key}]"
-                    errors.append(err)
-        for page in content.evidence:
-            row = self.conn.execute(
-                "SELECT path FROM assets WHERE asset_id = %s", (page.asset_id,)
-            ).fetchone()
-            if row is None or not (self.root / row["path"]).is_file():
-                errors.append(error(
+                    found.append(err)
+            return found
+
+        # Keep all SQL on the transaction's owning thread. Only independent
+        # object reads/decoding run concurrently, bounded to four workers.
+        evidence_paths = {}
+        if content.evidence:
+            rows = self.conn.execute(
+                "SELECT asset_id, path FROM assets WHERE asset_id = ANY(%s)",
+                ([page.asset_id for page in content.evidence],),
+            ).fetchall()
+            evidence_paths = {row['asset_id']: row['path'] for row in rows}
+
+        def check_page(page):
+            try:
+                path = evidence_paths.get(page.asset_id)
+                if path is None:
+                    raise QbError([])
+                self.assets._load_bytes(path)
+            except QbError:
+                return [error(
                     "EVIDENCE_ASSET_UNAVAILABLE",
                     f"证据页资产不可用: {page.asset_id}",
                     item_key=item_key, field_path=f"evidence[{page.role}]",
                     retryable=False,
-                ))
+                )]
+            return []
+
+        jobs = [(check_binding, binding) for binding in content.images]
+        jobs.extend((check_page, page) for page in content.evidence)
+        if self.assets.oss and len(jobs) > 1:
+            with ThreadPoolExecutor(max_workers=min(4, len(jobs))) as pool:
+                futures = [pool.submit(fn, value) for fn, value in jobs]
+                # Preserve input order for deterministic validation receipts.
+                for future in futures:
+                    errors.extend(future.result())
+        else:
+            for fn, value in jobs:
+                errors.extend(fn(value))
         return errors
 
     def _insert_asset_rows(self, asset_infos) -> None:

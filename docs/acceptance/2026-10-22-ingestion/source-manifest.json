@@ -1,0 +1,28 @@
+{
+  "python": "3.12.3",
+  "head": "20cbf07d35b44c1aa3a8ac30f9b3e2753b27d08b",
+  "sha256": {
+    "question_bank/__init__.py": "427beda79817a50616d0f9d0015a3cb22651c086335cf35fb8bdb794ba1b72cc",
+    "question_bank/agent_tools.py": "df15335808c7632c463a5a04caef3c3d5171761a37ae3e835166289d31fb50b9",
+    "question_bank/assets.py": "16f8293cdca08e0ada146f51bc7782ae2beed43649d3ee2f51a951e4fcb79491",
+    "question_bank/backup.py": "3c1f30445904a8a12f3235835365f489b4048782b6ce1e1a151767915b614455",
+    "question_bank/canonical.py": "3376cd1726191f63b4233307c354462e1f13f2db7bdb7b3b72b8fdf8de4fdbf0",
+    "question_bank/catalog.py": "f54d87016dc72b4b239d29cf46dbbb7febeeca64930c85f684748a6352208770",
+    "question_bank/cli.py": "d130df4b3fa2123c0a95d270456e6011ffe180236bd37b175558c7dd952c1f2f",
+    "question_bank/db.py": "0755836c9e39d2e2820b063b6aee419ca0f49c23a0e70ef9eebe0c7aba6f67c1",
+    "question_bank/docx_source.py": "031a153225780bc674fb59c904a9221554e6f34aa8eaeb41c9c81f3ea8863913",
+    "question_bank/errors.py": "a7ee5d4c17cdb0f9bfa00893cbf1a6ed5dd7f08efb42f6d7ae42fb757674aa98",
+    "question_bank/explanations_ai.py": "f2041e1a51fe402eec079d653d9bb582656d8e4bab75babd5ad2fe5f78ef335b",
+    "question_bank/export.py": "befd185e5c8fffc4f674aeedade44b10c4b344bbddbb3c31d4bac07aa3aa5cae",
+    "question_bank/import_sqlite.py": "9d7a1f73e5cf36c74ce7b4a7f14727a6d8d6d4c263f65ea64a175272d8aaf33d",
+    "question_bank/migrations/001_initial.sql": "15fad343b5d8c495056f15316af8e6b1ed9066c20b1b28f72b788033945718cb",
+    "question_bank/models.py": "0c07bcee08e0fffd110f03c1da9622a433b02bf6d63c436bf53aaf0d06e1db74",
+    "question_bank/oss_store.py": "199a848e67557ea22a02ae3dc129074d00f38fa964f966f00f26e2f42cc70a7a",
+    "question_bank/revision_ai.py": "dba16a27d61b7317ddac87ed50d3f806b149fb4fe4e223f9ace2486fe1f70e2b",
+    "question_bank/server.py": "b362fe8eb250e03fedf4cfb6db9857a4e698271efc76a7c829418b2cc1f13ffe",
+    "question_bank/service.py": "7cc4822c8e96b254bac0d018b7e2bc82a1b22cf705e572681559977f13821531",
+    "question_bank/teaching.py": "c9dabb53e10ded5327607726c2900ac144ff1a7fa96cde9e14672d5818ae2ca8",
+    "tests/test_ingestion_rds_oss_contract.py": "2107259c41cbbff87a2b475df58ff4d6bbb8f2c2c0b3e56c0dc5d2d65b699696",
+    "tests/test_ingestion_storage_contract.py": "a784c8941feff2c3d3a09d63168ff12fab6b75c37b3fde4068b0b869136a0205"
+  }
+}

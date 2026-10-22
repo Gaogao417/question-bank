@@ -60,10 +60,16 @@ QB_DATABASE_SCHEMA=restored_bank .venv/bin/question-bank restore --source /path/
 - `question-bank-agent prepare/new/read/fill/check/submit` 是 agent 的材料和录入工具；`check` 在一次性 PostgreSQL schema 中预检。
 - DOCX 提取助手随包提供，原卷转页仍需 LibreOffice/Poppler 等系统工具。录音探测需要 ffmpeg/ffprobe（Docker 镜像已安装）。
 - 课堂以导出内容包为接口；`QB_TEACHING_TOOLS_ROOT` 是可选的外部投递位置，未设置时仍可生成本地导出。
-- 媒体暂用本地持久化目录。接对象存储属于下一步，不因数据库改为 PostgreSQL 而自动完成。
+- 媒体支持本地持久化目录及 OSS；OSS 证据页录入、资产摘要校验与拒绝回执重放已修复并通过云端复验，详见下方验收报告。
 
 ## 测试
 
 设置指向专用 PostgreSQL 18 测试数据库的 `QB_DATABASE_URL`，运行 `.venv/bin/python -m pytest`；安装 Node 依赖后运行 `npm ci && npm run test:ui` 验证实际管理页面。测试使用真实 PostgreSQL，每个测试建立独立 schema，结束后删除；不调用真实付费模型。迁移前的 SQLite 内部 DDL 测试由 PostgreSQL 迁移、并发及只读导入测试替代。
 
 本机 PostgreSQL 18 的真实版本、测试数量、持久化重启和证据见 [PostgreSQL 18 验证报告](docs/postgresql18-validation.md)。本机验证不代表阿里云 RDS PostgreSQL 18 已验证。
+
+录入到 RDS 与 OSS 的业务约束、程序代数及性能口径见 [录入不变量与性能验收规范](docs/ingestion-invariants-and-performance.md)。真实 RDS/OSS 的本轮结果见 [2026-10-22 录入验收报告](docs/ingestion-acceptance-2026-10-22.md)：F01–F03 已修复，严格契约及真实云端功能复验通过；30 分钟持续负载 SLA、独立媒体灾备等仍未验证，报告保留初验失败证据。
+
+小图录入优化、分阶段耗时与测试数据库隔离说明见 [性能优化报告](docs/ingestion-performance-2026-10-22.md)：同轮 P95 从 1052 ms 降至 477 ms；190 项严格回归通过，尚未部署。
+
+进一步的大图与并发优化见 [第二轮优化报告](docs/ingestion-scale-optimization-2026-10-22.md)：每题约 4 MiB、4 并发下，短时吞吐从 0.53 提升至 2.08 题/s，保留事务锁和全部摘要校验。

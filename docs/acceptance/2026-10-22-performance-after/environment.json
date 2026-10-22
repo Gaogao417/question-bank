@@ -1,0 +1,9 @@
+{
+  "test_database": "qb_acceptance_57eaef8eb68445b9",
+  "database_isolation": "dedicated temporary database",
+  "oss": "fake in pytest",
+  "started_at": "2026-10-22T05:40:02Z",
+  "server_version": "PostgreSQL 18.6",
+  "pytest_exit_code": 0,
+  "test_database_removed": true
+}
