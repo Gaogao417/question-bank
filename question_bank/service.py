@@ -336,7 +336,7 @@ class QuestionBankService(TeachingNotesMixin):
             info = dict(row)
         else:
             path = (package / ref.ref).resolve()
-            if not str(path).startswith(str(package)) or not path.is_file():
+            if not path.is_relative_to(package) or not path.is_file():
                 raise QbError([
                     error(
                         "ASSET_MISSING",

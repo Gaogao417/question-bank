@@ -148,3 +148,16 @@ if ($checkExit -eq 0) {
 ```
 
 `status --paper-id <卷号>` 仅列目标卷已入库题目；省略参数仍列全库。空列表表示没有已入库题，不代表整卷完成；待写候选仍需查看本地目录。
+
+## 远程服务入口（2026-10-22）
+
+外部 agent 可将上述 submit 的 `--root` 换为 `--server https://your-server`，配置 `QB_SERVER_USER` / `QB_SERVER_PASSWORD`。也可用 `QB_SERVER_URL` 默认地址。此路径不初始化/连接本地 PostgreSQL，不需要 OSS 密钥；全部业务校验和上传由服务器执行。`--root` 与 `--server`（含环境默认值）不能同时使用，切换直连时先取消 `QB_SERVER_URL`。
+
+已经准备好 `candidate.json` 与全部引用资产的目录，可直接执行：
+
+```sh
+question-bank-agent upload --package ./candidate --server https://your-server --receipt-out ./receipt-001.json
+question-bank-agent receipt --server https://your-server --submission-id your-submission-id
+```
+
+`upload` 不修改输入包，`--receipt-out` 必须是新的、位于包外的文件。远程材料 submit 仍在任务内保存不可覆盖的原包和各次回执。远程 submit 不执行依赖本地 PostgreSQL 的 check；服务器执行同一套完整校验。超时先查询原 submission_id，再原样重放；带疑点接收仍不能批准或发布。详细 API、格式、64/128 MiB 限制及错误码见 [远程录入指南](remote-ingestion.md)。

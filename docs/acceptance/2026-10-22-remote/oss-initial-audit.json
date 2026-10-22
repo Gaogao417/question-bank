@@ -1,0 +1,108 @@
+{
+  "audit": "read-only; no objects deleted",
+  "window_start_utc": "2026-10-22T06:29:50Z",
+  "window_end_utc": "2026-10-22T06:32:15Z",
+  "method": "current OSS assets/ objects whose LastModified falls in initial pytest window, compared against selected business schema assets table",
+  "limits": "No per-PUT log or before snapshot; does not establish whether objects were newly created, identify writes outside window, or prove references in other databases absent. No unknown objects deleted.",
+  "objects": [
+    {
+      "key": "assets/2c/2cb86435b1d35a75dfe0d4af6064a6d882406ab6d806ac818d5a3b50a0d7f0d1.png",
+      "bytes": 511,
+      "last_modified_utc": "2026-10-22T06:30:00+00:00",
+      "matches_content_address": true,
+      "referenced_by_business_assets": false,
+      "matches_business_hash": null
+    },
+    {
+      "key": "assets/2c/2ce2045b7fbd24fba0ee0d9561bf2023c7a3e7eab0d1b7461a0b1a40792735cf.png",
+      "bytes": 392,
+      "last_modified_utc": "2026-10-22T06:30:00+00:00",
+      "matches_content_address": true,
+      "referenced_by_business_assets": false,
+      "matches_business_hash": null
+    },
+    {
+      "key": "assets/2d/2d6399f115450f98baac42098c9c0ff80fc13329d5c16ef997dfe5c158b66b23.png",
+      "bytes": 293,
+      "last_modified_utc": "2026-10-22T06:31:08+00:00",
+      "matches_content_address": true,
+      "referenced_by_business_assets": false,
+      "matches_business_hash": null
+    },
+    {
+      "key": "assets/35/35f0164e3176b402f565c72bf726d2904b1aed7c15a27c0c5487e6898f7e26ee.png",
+      "bytes": 354,
+      "last_modified_utc": "2026-10-22T06:30:14+00:00",
+      "matches_content_address": true,
+      "referenced_by_business_assets": false,
+      "matches_business_hash": null
+    },
+    {
+      "key": "assets/35/35fea700a410f472f0a98b0d404978d43f523a7c7d4dabc53ac5d149a36ec8ba.png",
+      "bytes": 1909,
+      "last_modified_utc": "2026-10-22T06:30:01+00:00",
+      "matches_content_address": true,
+      "referenced_by_business_assets": false,
+      "matches_business_hash": null
+    },
+    {
+      "key": "assets/43/43418fad1c6f4f7bbd84302554950592446d44f8f47fb28cb2b255ffac914f0f.png",
+      "bytes": 1909,
+      "last_modified_utc": "2026-10-22T06:30:01+00:00",
+      "matches_content_address": true,
+      "referenced_by_business_assets": false,
+      "matches_business_hash": null
+    },
+    {
+      "key": "assets/4f/4fa68262e0925baebdd703bfd80979042221b7d8adf5c68f31b398255ec1b113.wav",
+      "bytes": 32046,
+      "last_modified_utc": "2026-10-22T06:31:53+00:00",
+      "matches_content_address": true,
+      "referenced_by_business_assets": false,
+      "matches_business_hash": null
+    },
+    {
+      "key": "assets/5c/5cc5381e30569184e9a767a859b681a0570f483d9f1ebbb01f6230ecdd28a84a.png",
+      "bytes": 317,
+      "last_modified_utc": "2026-10-22T06:30:06+00:00",
+      "matches_content_address": true,
+      "referenced_by_business_assets": false,
+      "matches_business_hash": null
+    },
+    {
+      "key": "assets/64/643f8a8dc8bd9c19225afffad2becfec5426180b3749cb208abdf1a6c8354efc.wav",
+      "bytes": 32044,
+      "last_modified_utc": "2026-10-22T06:31:26+00:00",
+      "matches_content_address": true,
+      "referenced_by_business_assets": false,
+      "matches_business_hash": null
+    },
+    {
+      "key": "assets/ed/ede9083ce9db0cdad8f7c6617ea706f7b99a6190979d073d95343cf533a171a9.wav",
+      "bytes": 32046,
+      "last_modified_utc": "2026-10-22T06:31:53+00:00",
+      "matches_content_address": true,
+      "referenced_by_business_assets": false,
+      "matches_business_hash": null
+    },
+    {
+      "key": "assets/fc/fc542272680277361a0fed6e0eebc60490c80144da82e42152b482e9321b55b4.png",
+      "bytes": 2039,
+      "last_modified_utc": "2026-10-22T06:30:06+00:00",
+      "matches_content_address": true,
+      "referenced_by_business_assets": false,
+      "matches_business_hash": null
+    },
+    {
+      "key": "assets/fe/fe8e395c205890967f3501b4d7c969f8175ccd3b29138e4451900051405815ee.png",
+      "bytes": 2039,
+      "last_modified_utc": "2026-10-22T06:30:06+00:00",
+      "matches_content_address": true,
+      "referenced_by_business_assets": false,
+      "matches_business_hash": null
+    }
+  ],
+  "count": 12,
+  "referenced_count": 0,
+  "all_hashes_match": true
+}

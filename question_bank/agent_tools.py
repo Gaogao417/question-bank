@@ -311,7 +311,11 @@ def build_package(materials, task_dir, out):
     return payload
 
 
-def process(materials, task_dir, root=None, actor="client-agent"):
+def process(materials, task_dir, root=None, actor="client-agent", *, server=None, user=None, password=None, timeout=120):
+    if server and root is not None:
+        raise ToolError("--root conflicts with --server/QB_SERVER_URL; unset QB_SERVER_URL for direct mode")
+    if server:
+        return process_remote(materials, task_dir, server, user=user, password=password, timeout=timeout)
     if root is not None and not db_mod.is_initialized():
         raise ToolError("Management database missing; initialize explicitly using existing cli init")
     with tempfile.TemporaryDirectory(prefix="qb-agent-") as tmp:
@@ -367,6 +371,35 @@ def process(materials, task_dir, root=None, actor="client-agent"):
                 "note": "Target database receipt; accepted_with_issues remains pending review. This command does not approve content or publish"}
 
 
+def process_remote(materials, task_dir, server, **options):
+    from question_bank.remote_ingestion import package_bytes, request
+    import uuid
+    with tempfile.TemporaryDirectory(prefix="qb-remote-") as tmp:
+        package = Path(tmp) / "package"
+        payload = build_package(materials, task_dir, package)
+        shutil.copyfile(materials, package / "materials.snapshot.json")
+        sources = package / "sources"
+        sources.mkdir()
+        for index, entry in enumerate(read_json(materials)["sources"]):
+            shutil.copyfile(verified(entry), sources / f"{index:04}.source")
+        archive = Path(task_dir) / "submissions" / payload["submission_id"]
+        if archive.exists():
+            expected = {p.relative_to(package): digest(p) for p in package.rglob("*") if p.is_file()}
+            actual = {p.relative_to(archive): digest(p) for p in archive.rglob("*") if p.is_file()}
+            if expected != actual:
+                raise ToolError("Archived package changed; refusing retry")
+        else:
+            archive.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(package, archive)
+        result = request(server, "/api/submissions", raw=package_bytes(archive), **options)
+        receipts = Path(task_dir) / "receipts"
+        receipts.mkdir(exist_ok=True)
+        write_json(receipts / f"{uuid.uuid4().hex}.json", result)
+        return {**result, "submission_id": payload["submission_id"], "phase": "submit",
+                "preflight_only": False, "content_approved": False,
+                "submitted": result.get("ok", False)}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -391,8 +424,26 @@ def main(argv=None):
         p.add_argument("--materials", required=True)
         p.add_argument("--task", required=True)
         if command == "submit":
-            p.add_argument("--root", required=True)
+            target = p.add_mutually_exclusive_group()
+            target.add_argument("--root")
+            target.add_argument("--server", default=__import__("os").environ.get("QB_SERVER_URL"))
+            p.add_argument("--user")
+            p.add_argument("--password")
+            p.add_argument("--timeout", type=float, default=120)
             p.add_argument("--actor", default="client-agent")
+    p = sub.add_parser("upload", help="Upload a prepared candidate.json package without DB/OSS configuration")
+    p.add_argument("--package", required=True)
+    p.add_argument("--server", default=__import__("os").environ.get("QB_SERVER_URL"))
+    p.add_argument("--user")
+    p.add_argument("--password")
+    p.add_argument("--timeout", type=float, default=120)
+    p.add_argument("--receipt-out")
+    p = sub.add_parser("receipt")
+    p.add_argument("--server", default=__import__("os").environ.get("QB_SERVER_URL"))
+    p.add_argument("--submission-id", required=True)
+    p.add_argument("--user")
+    p.add_argument("--password")
+    p.add_argument("--timeout", type=float, default=120)
     args = parser.parse_args(argv)
     try:
         if args.command == "prepare":
@@ -404,8 +455,27 @@ def main(argv=None):
         elif args.command == "fill":
             content = sys.stdin.read() if args.input == "-" else Path(args.input).read_text(encoding="utf-8")
             result = fill_task(args.task, args.file, content, args.expected_sha256)
+        elif args.command == "upload":
+            from question_bank.remote_ingestion import package_bytes, request
+            if not args.server:
+                raise ToolError("upload requires --server or QB_SERVER_URL")
+            result = request(args.server, "/api/submissions", raw=package_bytes(args.package), user=args.user, password=args.password, timeout=args.timeout)
+            if args.receipt_out:
+                destination = Path(args.receipt_out)
+                with destination.open("x", encoding="utf-8") as stream:
+                    json.dump(result, stream, ensure_ascii=False, indent=2)
+        elif args.command == "receipt":
+            from question_bank.remote_ingestion import request
+            from urllib.parse import quote
+            if not args.server:
+                raise ToolError("receipt requires --server or QB_SERVER_URL")
+            result = request(args.server, "/api/submissions/" + quote(args.submission_id, safe=""), user=args.user, password=args.password, timeout=args.timeout)
         else:
-            result = process(args.materials, args.task, getattr(args, "root", None), getattr(args, "actor", "client-agent"))
+            if args.command == "submit" and not (args.root or args.server):
+                raise ToolError("submit requires --root or --server/QB_SERVER_URL")
+            result = process(args.materials, args.task, getattr(args, "root", None), getattr(args, "actor", "client-agent"),
+                             server=getattr(args, "server", None), user=getattr(args, "user", None),
+                             password=getattr(args, "password", None), timeout=getattr(args, "timeout", 120))
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0 if result.get("ok", True) else 1
     except QbError as exc:

@@ -7,12 +7,11 @@ from __future__ import annotations
 import base64
 import hmac
 import os
-import secrets
 from pathlib import Path
 
 from question_bank.server import create_app
 
-ROOT = Path(__file__).parent / "data"
+ROOT = Path(os.environ.get("QB_ROOT", str(Path(__file__).parent / "data"))).expanduser().resolve()
 UI_USER = os.environ.get("QB_UI_USER", "admin")
 UI_PASSWORD = os.environ.get("QB_UI_PASSWORD", "")
 REALM = b'Basic realm="question-bank"'
@@ -22,10 +21,12 @@ class BasicAuthMiddleware:
     """纯 ASGI 中间件，避免 BaseHTTPMiddleware 对流式响应的影响。"""
 
     def __init__(self, app):
+        if not UI_PASSWORD:
+            raise RuntimeError("QB_UI_PASSWORD is required for the public Question Bank service")
         self.app = app
 
     async def __call__(self, scope, receive, send):
-        if scope["type"] != "http" or not UI_PASSWORD:
+        if scope["type"] != "http":
             return await self.app(scope, receive, send)
         headers = {k.lower(): v for k, v in scope.get("headers", [])}
         auth = headers.get(b"authorization", b"")
@@ -40,7 +41,7 @@ class BasicAuthMiddleware:
             "type": "http.response.start", "status": 401,
             "headers": [(b"www-authenticate", REALM), (b"content-type", b"text/plain; charset=utf-8")],
         })
-        await send({"type": "http.response.body", "body": "401 Unauthorized"})
+        await send({"type": "http.response.body", "body": b"401 Unauthorized"})
 
 
 app = BasicAuthMiddleware(create_app(ROOT))

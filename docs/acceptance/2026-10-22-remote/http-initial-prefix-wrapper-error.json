@@ -1,0 +1,15 @@
+{
+  "database": "qb_remote_http_c2b70d0a558548a9",
+  "oss_prefix": "acceptance/c2b70d0a558548a9949f8bcc1f3cd5fa/",
+  "transport": "real HTTP loopback; serve_public BasicAuthMiddleware; real RDS and OSS",
+  "paid_models": false,
+  "first_upload_asset_bytes": 2276811,
+  "zip_bytes": 2049092,
+  "client_configuration": "only QB_SERVER_URL/USER/PASSWORD; all other QB_* and ALIBABA_* removed",
+  "unauthenticated_status": 401,
+  "first_cli_upload_ms": 950.7707640000262,
+  "error": "AssertionError({'ok': False, 'outcome_unknown': True, 'errors': [{'code': 'SUBMISSION_UNAVAILABLE', 'message': 'Query receipt before retrying exact submission', 'retryable': True}], 'http_status': 503})",
+  "oss_objects_removed": true,
+  "objects_created": 0,
+  "database_removed": true
+}

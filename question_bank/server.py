@@ -55,6 +55,34 @@ def create_app(root: str | Path) -> FastAPI:
         if svc is not None:
             svc.close()
 
+    @app.post("/api/submissions")
+    async def submit_package(request: Request):
+        from question_bank.remote_ingestion import MAX_UPLOAD, submit_upload
+        from fastapi.responses import JSONResponse
+        raw = bytearray()
+        async for chunk in request.stream():
+            if len(raw) + len(chunk) > MAX_UPLOAD:
+                return JSONResponse({"ok": False, "errors": [{"code": "UPLOAD_TOO_LARGE", "message": "Upload exceeds 64 MiB", "retryable": False}]}, status_code=413)
+            raw.extend(chunk)
+        try:
+            receipt = await run_in_threadpool(submit_upload, service(), bytes(raw), "remote-agent")
+            accepted = receipt["status"] in {"accepted", "accepted_with_issues", "noop"}
+            return JSONResponse({"ok": accepted, "receipt": receipt}, status_code=200 if accepted else 422)
+        except ReceiptError as exc:
+            return JSONResponse({"ok": False, "errors": exc.errors}, status_code=409)
+        except QbError as exc:
+            return JSONResponse({"ok": False, "errors": exc.errors}, status_code=422)
+        except Exception:
+            return JSONResponse({"ok": False, "outcome_unknown": True, "errors": [{"code": "SUBMISSION_UNAVAILABLE", "message": "Query receipt before retrying exact submission", "retryable": True}]}, status_code=503)
+
+    @app.get("/api/submissions/{submission_id}")
+    def get_submission(submission_id: str):
+        from fastapi.responses import JSONResponse
+        try:
+            return {"ok": True, "receipt": service().submission_receipt(submission_id)}
+        except QbError as exc:
+            return JSONResponse({"ok": False, "errors": exc.errors}, status_code=404)
+
     @app.get("/healthz")
     def healthz() -> dict[str, Any]:
         try:

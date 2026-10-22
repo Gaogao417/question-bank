@@ -70,6 +70,10 @@ QB_DATABASE_SCHEMA=restored_bank .venv/bin/question-bank restore --source /path/
 
 录入到 RDS 与 OSS 的业务约束、程序代数及性能口径见 [录入不变量与性能验收规范](docs/ingestion-invariants-and-performance.md)。真实 RDS/OSS 的本轮结果见 [2026-10-22 录入验收报告](docs/ingestion-acceptance-2026-10-22.md)：F01–F03 已修复，严格契约及真实云端功能复验通过；30 分钟持续负载 SLA、独立媒体灾备等仍未验证，报告保留初验失败证据。
 
-小图录入优化、分阶段耗时与测试数据库隔离说明见 [性能优化报告](docs/ingestion-performance-2026-10-22.md)：同轮 P95 从 1052 ms 降至 477 ms；190 项严格回归通过，尚未部署。
+小图录入优化、分阶段耗时与测试数据库隔离说明见 [性能优化报告](docs/ingestion-performance-2026-10-22.md)：同轮 P95 从 1052 ms 降至 477 ms；该轮 190 项严格回归通过；相关优化已随下述远程录入服务部署。
 
 进一步的大图与并发优化见 [第二轮优化报告](docs/ingestion-scale-optimization-2026-10-22.md)：每题约 4 MiB、4 并发下，短时吞吐从 0.53 提升至 2.08 题/s，保留事务锁和全部摘要校验。
+
+外部电脑可通过同一服务远程录入：`question-bank-agent upload --package ./candidate --server https://your-server`，或现有 `submit --materials … --task … --server …`；仅需服务地址与 Basic Auth 凭证，无需数据库或 OSS 配置。查询使用 `question-bank-agent receipt --server … --submission-id …`。直连方式保留；包限制、超时后恢复和完整命令见 [远程录入指南](docs/remote-ingestion.md)。
+
+当前主机 Review UI 和远程录入 API 共用 8890，`question-bank.service` 已启用开机启动并重启验证。配置、管理命令与验证边界见 [服务器启动说明](docs/server-startup.md)。最新远程功能完整回归 221 项通过；部署后认证、UI、健康检查及新接口只读验证通过。
