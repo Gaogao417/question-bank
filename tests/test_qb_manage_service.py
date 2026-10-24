@@ -11,9 +11,11 @@ import json
 import sys
 from pathlib import Path
 
+import psycopg.errors
 import pytest
 import yaml
 from PIL import Image
+from psycopg.pq import TransactionStatus
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
@@ -136,6 +138,31 @@ def service(tmp_path: Path) -> QuestionBankService:
 def submitted(service: QuestionBankService, tmp_path: Path) -> dict:
     package = make_package(tmp_path)
     return service.submit_candidate(package)
+
+
+# ----------------------------------------------------------------------
+# 连接自愈
+# ----------------------------------------------------------------------
+
+class TestConnectionRecovery:
+    def test_thread_conn_recovers_after_aborted_write_transaction(
+        self, service: QuestionBankService
+    ):
+        conn = service.conn
+        assert conn.info.transaction_status == TransactionStatus.IDLE
+        # 复现真实毒化路径：begin_write() 裸 BEGIN 开启显式写事务，
+        # 中途语句失败且错误路径未回滚（2026-10-24 事故机制）。
+        conn.begin_write()
+        with pytest.raises(psycopg.errors.UndefinedTable):
+            conn.execute("SELECT * FROM __no_such_table__")
+        assert conn.info.transaction_status == TransactionStatus.INERROR
+
+        # aborted 连接再次经 conn 属性获取时应自动回滚自愈，
+        # 而不是把 InFailedSqlTransaction 留给该线程的后续所有请求。
+        healed = service.conn
+        assert healed is conn
+        assert healed.info.transaction_status == TransactionStatus.IDLE
+        assert healed.execute("SELECT 1 AS one").fetchone()["one"] == 1
 
 
 # ----------------------------------------------------------------------

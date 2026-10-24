@@ -13,10 +13,12 @@ from __future__ import annotations
 
 import io
 import os
+import re
 import shutil
 import subprocess
 import tempfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
+from typing import Any, Mapping
 
 from PIL import Image, UnidentifiedImageError
 
@@ -24,6 +26,8 @@ from question_bank import oss_store
 from question_bank.canonical import sha256_bytes
 from question_bank.errors import QbError, error
 from question_bank.models import ImageBinding
+
+ASSET_ID_PATTERN = re.compile(r"sha256:[0-9a-f]{64}\Z")
 
 ALLOWED_MIME = {
     "image/png": ".png",
@@ -174,6 +178,99 @@ class AssetStore:
         if self.oss:
             return oss_store.object_exists(key)
         return (self.root / key).is_file()
+
+    def verify_registered_asset(
+        self,
+        asset_id: str,
+        row: Mapping[str, Any] | None,
+        *,
+        item_key: str = "",
+        field_path: str = "",
+    ) -> Path:
+        """Verify a registered image without repairing or re-registering bytes.
+
+        ``row`` is the full assets record. Read/preview APIs deliberately stay
+        separate so damaged history remains available for repair; callers use
+        this gate before accepting/exporting. OSS 模式经 _load_bytes 复核对象
+        存储 SHA；本地模式复核磁盘文件 SHA。
+        """
+
+        def fail(code: str, message: str) -> None:
+            raise QbError(
+                [
+                    error(
+                        code,
+                        message,
+                        item_key=item_key,
+                        field_path=field_path,
+                        fix_hint="恢复已登记的原字节，或登记正确新资产并明确修订引用；不要改写历史摘要",
+                        retryable=False,
+                    )
+                ]
+            )
+
+        if row is None:
+            fail("ASSET_NOT_FOUND", f"资产未登记: {asset_id}")
+        if not isinstance(asset_id, str) or not ASSET_ID_PATTERN.fullmatch(asset_id):
+            fail("ASSET_ID_INVALID", f"资产 ID 不是规范 SHA-256: {asset_id}")
+        try:
+            registered = dict(row)
+        except (TypeError, ValueError) as exc:
+            fail("ASSET_METADATA_INVALID", f"资产登记记录不可读: {asset_id}: {exc}")
+        if (
+            registered.get("asset_id") != asset_id
+            or registered.get("sha256") != asset_id
+        ):
+            fail(
+                "ASSET_METADATA_INVALID",
+                f"资产 ID/登记 SHA 不一致: 引用 {asset_id}，登记 ID "
+                f"{registered.get('asset_id')!r}，登记 SHA {registered.get('sha256')!r}",
+            )
+        if registered.get("mime") not in ALLOWED_MIME:
+            fail(
+                "ASSET_FORMAT_UNSUPPORTED",
+                f"图片资产登记格式不支持: {registered.get('mime')!r}",
+            )
+
+        rel = registered.get("path")
+        if not isinstance(rel, str) or not rel or "\x00" in rel:
+            fail("ASSET_PATH_INVALID", f"资产登记路径无效: {asset_id}")
+        relative = PurePosixPath(rel.replace("\\", "/"))
+        windows = PureWindowsPath(rel)
+        if (
+            relative.is_absolute()
+            or windows.drive
+            or windows.root
+            or not relative.parts
+            or ".." in relative.parts
+            or relative.parts[0] != "assets"
+        ):
+            fail("ASSET_PATH_OUT_OF_BOUNDS", f"资产登记路径不在受管 assets 目录: {rel}")
+        # OSS 模式下字节在对象存储（key=path），路径只做语法约束；
+        # 本地模式额外确认解析后的路径仍在受管 assets 目录内。
+        if not self.oss:
+            try:
+                assets_dir = self.dir.resolve()
+                path = (self.root / Path(relative)).resolve()
+                if not assets_dir.is_relative_to(self.root) or not path.is_relative_to(
+                    assets_dir
+                ):
+                    fail(
+                        "ASSET_PATH_OUT_OF_BOUNDS", f"资产登记路径解析后越出受管目录: {rel}"
+                    )
+            except QbError:
+                raise
+            except (OSError, RuntimeError, ValueError) as exc:
+                fail("ASSET_UNREADABLE", f"无法解析已登记资产路径 {rel}: {exc}")
+        try:
+            raw = self._load_bytes(str(relative))
+            if sha256_bytes(raw) != asset_id:
+                fail("ASSET_HASH_MISMATCH", f"资产内容与登记 SHA 不符: {asset_id}")
+        except QbError:
+            raise
+        except (OSError, RuntimeError, ValueError) as exc:
+            fail("ASSET_UNREADABLE", f"无法读取已登记资产 {rel}: {exc}")
+        return Path(relative)
 
     # ------------------------------------------------------------------
     # 录音（讲解音频）：与图片共用 hash 寻址与原子落盘，校验路径独立。
