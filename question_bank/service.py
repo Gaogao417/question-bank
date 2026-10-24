@@ -1847,6 +1847,7 @@ class QuestionBankService(AutoReviewMixin, TeachingNotesMixin):
         directory = catalog.paper_item_directory(self.conn, paper_id)
         for entry in directory:
             entry["notes_summary"] = self._notes_summary_for_item(entry["item_id"])
+            entry.update(self.review_metadata(entry["item_id"], entry["revision"]))
         return directory
 
     def _notes_summary_for_item(self, item_id: str) -> dict[str, Any]:

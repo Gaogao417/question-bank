@@ -142,3 +142,18 @@ def test_postgresql_repair_and_review_metadata(tmp_path, monkeypatch):
         assert updated['reviews'] == []
     finally:
         svc.close()
+
+
+def test_paper_directory_exposes_review_filters(monkeypatch):
+    from question_bank import catalog
+    svc = QuestionBankService.__new__(QuestionBankService)
+    svc._local = threading.local()
+    svc._local.conn = SimpleNamespace(closed=False, info=SimpleNamespace(transaction_status=0),
+        execute=lambda *a: SimpleNamespace(fetchone=lambda: {"exists": 1}))
+    monkeypatch.setattr(catalog, 'paper_item_directory', lambda *a: [{"item_id": "test", "revision": 2}])
+    monkeypatch.setattr(svc, '_notes_summary_for_item', lambda *a: {})
+    def metadata(item_id, revision):
+        assert (item_id, revision) == ('test', 2)
+        return {'review_task': 'review_ai', 'review_workflow': 'ai_revised'}
+    monkeypatch.setattr(svc, 'review_metadata', metadata)
+    assert svc.paper_item_directory('paper')[0]['review_task'] == 'review_ai'
