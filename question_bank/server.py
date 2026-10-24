@@ -24,6 +24,16 @@ from question_bank.service import QuestionBankService
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 
+class RevalidatingStaticFiles(StaticFiles):
+    """Revalidate UI files on navigation so deployments don't retain old assets."""
+
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
+
 def _oss_redirect(key: str) -> Response:
     """302 到 OSS 公网签名 URL（1 小时）。no-store 防签名 URL 过期后仍被缓存复用。"""
     from question_bank import oss_store
@@ -507,6 +517,6 @@ def create_app(root: str | Path) -> FastAPI:
             status_code=default_status, detail={"errors": exc.errors}
         )
 
-    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-    app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="root")
+    app.mount("/static", RevalidatingStaticFiles(directory=STATIC_DIR), name="static")
+    app.mount("/", RevalidatingStaticFiles(directory=STATIC_DIR, html=True), name="root")
     return app
