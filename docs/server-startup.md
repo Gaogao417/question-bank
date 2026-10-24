@@ -14,7 +14,13 @@ Review UI 和远程录入 API 运行在同一个 8890 进程，由 `question-ban
 - `QB_OSS_ACCESS_KEY_ID`、`QB_OSS_ACCESS_KEY_SECRET`：服务访问 OSS 的凭证；也支持原有 ALIBABA_CLOUD 同名后缀回退变量。
 - 可选 `QB_ROOT`：材料与归档目录，默认 `/home/admin/question-bank/data`。不要用改变 root 的方式切换题库，数据库由连接配置决定。
 
-跨电脑客户端只配置服务地址和访问凭证，不分发上述数据库或 OSS 密钥。裸 8890 为 HTTP，生产跨公网访问应使用现有 HTTPS 入口，或先通过 SSH 隧道访问，不把 Basic Auth 密码直接通过公网 HTTP 发送。
+跨电脑客户端只配置服务地址和访问凭证，不分发上述数据库或 OSS 密钥。裸 8890 为 HTTP，生产跨公网访问应使用 HTTPS 反代入口（见下文），或先通过 SSH 隧道访问，不把 Basic Auth 密码直接通过公网 HTTP 发送。
+
+## HTTPS 反代入口（8443）
+
+2026-10-24 起，本机 Caddy 在 `/etc/caddy/Caddyfile` 增加 `https://139.224.234.74:8443`，反代 `127.0.0.1:8890`，复用同一张 IP 证书；认证仍由服务的 Basic Auth 处理。云安全组放行 8443/TCP 后，浏览器与远程录入客户端统一走该入口，Basic Auth 密码不再经公网明文传输。
+
+不挂在 443 子路径：题库前端写死 `/api/*`、`/static/*` 绝对路径，与同 IP 的 teaching-tools 站点冲突。部署当日已本机验证 healthz 未认证 401、认证后 200、UI 首页与静态资源正常；安全组放行前公网不可达。配置快照另存于服务器 `~/deploy/`（该目录不入库）。
 
 ## 安装与管理
 
