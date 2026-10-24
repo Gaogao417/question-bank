@@ -39,6 +39,22 @@ def create_app(root: str | Path) -> FastAPI:
     app = FastAPI(title="question-bank-manage", version="b1")
     state: dict[str, QuestionBankService] = {}
 
+    repair_state: dict[str, object] = {}
+    repair_state_lock = threading.Lock()
+
+    def paper_repair():
+        from question_bank.auto_repair import PaperRepair
+
+        manager = repair_state.get("manager")
+        if manager is None:
+            # service() 内部持有 service_lock；这里必须用独立的锁，避免自死锁。
+            with repair_state_lock:
+                manager = repair_state.get("manager")
+                if manager is None:
+                    manager = PaperRepair(service())
+                    repair_state["manager"] = manager
+        return manager
+
     service_lock = threading.Lock()
 
     def service() -> QuestionBankService:
@@ -51,6 +67,9 @@ def create_app(root: str | Path) -> FastAPI:
 
     @app.on_event("shutdown")
     def _close() -> None:
+        manager = repair_state.get("manager")
+        if manager is not None:
+            manager.shutdown()
         svc = state.pop("service", None)
         if svc is not None:
             svc.close()
@@ -271,6 +290,38 @@ def create_app(root: str | Path) -> FastAPI:
             raise _http(exc, 404) from exc
         except Exception as exc:  # OSS 签名/网络故障
             raise HTTPException(status_code=502, detail=f"audio fetch failed: {exc}") from exc
+
+    @app.get("/api/papers/{paper_id}/auto-repair")
+    async def repair_status(paper_id: str):
+        return {"job": paper_repair().latest(paper_id)}
+
+    @app.post("/api/papers/{paper_id}/auto-repair")
+    async def repair_paper(paper_id: str, request: Request):
+        from question_bank.models import OPERATION_ID_PATTERN
+
+        payload = await request.json()
+        if (
+            not isinstance(payload, dict)
+            or set(payload) != {"operation_id"}
+            or not isinstance(payload["operation_id"], str)
+            or not OPERATION_ID_PATTERN.fullmatch(payload["operation_id"])
+        ):
+            raise HTTPException(400, detail="需要有效且唯一的 operation_id")
+        try:
+            return {"job": paper_repair().start(paper_id, payload["operation_id"])}
+        except QbError as exc:
+            raise _http(exc) from exc
+        except ValueError as exc:
+            raise HTTPException(400, detail=str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(409, detail=str(exc)) from exc
+
+    @app.post("/api/papers/{paper_id}/auto-repair/stop")
+    async def stop_repair(paper_id: str):
+        try:
+            return {"job": paper_repair().stop(paper_id)}
+        except ValueError as exc:
+            raise HTTPException(404, detail=str(exc)) from exc
 
     @app.get("/api/items/{item_id}")
     def item_detail(item_id: str, revision: int | None = None) -> dict[str, Any]:

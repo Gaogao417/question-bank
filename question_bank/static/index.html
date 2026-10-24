@@ -1,93 +1,314 @@
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>题库管理 · 数据库修订</title>
-    <link rel="stylesheet" href="/static/question-bank-review.css?v=20260930-wizard-2">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>题库审阅 · 题库管理</title>
+    <link
+      rel="stylesheet"
+      href="/static/question-bank-review.css?v=20261003-lasso-1"
+    />
     <script>
       window.MathJax = {
         tex: {
-          inlineMath: [["$", "$"], ["\\(", "\\)"]],
-          displayMath: [["$$", "$$"], ["\\[", "\\]"]],
-          processEscapes: true
+          inlineMath: [
+            ["$", "$"],
+            ["\\(", "\\)"],
+          ],
+          displayMath: [
+            ["$$", "$$"],
+            ["\\[", "\\]"],
+          ],
+          processEscapes: true,
         },
-        startup: { typeset: false }
+        startup: { typeset: false },
       };
     </script>
-    <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
-    <script defer src="/static/app.js?v=20260930-wizard-2"></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"
+    ></script>
+    <script defer src="/static/source-capture.js?v=20261003-lasso-1"></script>
+    <script
+      defer
+      src="/static/paper-repair.js?v=20261003-paper-repair-1"
+    ></script>
+    <link
+      rel="stylesheet"
+      href="/static/paper-repair.css?v=20261003-paper-repair-1"
+    />
+    <script defer src="/static/review-filters.js?v=20261003-review-1"></script>
+    <script defer src="/static/app.js?v=20261003-review-repair-1"></script>
   </head>
   <body>
     <header class="topbar">
-      <div>
-        <p class="eyebrow">QUESTION BANK · MANAGE</p>
-        <h1>题库管理</h1>
-        <p class="subtitle">左边看题与编辑，右边逐条回应疑点、汇总修改要求后交给 AI。</p>
-      </div>
-      <div class="summary" aria-live="polite">
-        <span id="root-summary">—</span>
-        <span id="topic-summary">尚未选择</span>
-        <span><strong id="position-summary">—</strong></span>
+      <button
+        id="nav-toggle"
+        type="button"
+        class="icon-button"
+        title="收起 / 展开题目列表"
+        aria-label="收起或展开题目列表"
+      >
+        ☰
+      </button>
+      <label class="bank-field">
+        <span class="visually-hidden">选择试卷</span>
+        <select id="bank-select" disabled>
+          <option value="">正在加载…</option>
+        </select>
+      </label>
+      <button
+        id="filter-toggle"
+        type="button"
+        class="text-button"
+        aria-expanded="false"
+      >
+        筛选
+      </button>
+      <div class="topbar-topic" id="topic-summary" hidden>尚未选择</div>
+      <div class="topbar-position" id="position-summary">—</div>
+      <span id="root-summary" hidden>—</span>
+      <div id="filter-panel" class="filter-panel" hidden>
+        <label class="filter-field">
+          <span>年份</span>
+          <select id="filter-year" autocomplete="off" disabled>
+            <option value="">全部</option>
+          </select>
+        </label>
+        <label class="filter-field">
+          <span>年级</span>
+          <select id="filter-grade" autocomplete="off" disabled>
+            <option value="">全部</option>
+          </select>
+        </label>
+        <label class="filter-field">
+          <span>试卷类型</span>
+          <select id="filter-exam-type" autocomplete="off" disabled>
+            <option value="">全部</option>
+            <option value="一模">一模</option>
+            <option value="二模">二模</option>
+            <option value="期中">期中</option>
+            <option value="期末">期末</option>
+            <option value="中考">中考</option>
+          </select>
+        </label>
+        <label class="filter-field filter-field-search">
+          <span>检索</span>
+          <input
+            id="search-input"
+            type="search"
+            placeholder="题库名 / 年份 / 区…"
+            autocomplete="off"
+          />
+        </label>
+        <p id="bank-meta" class="bank-meta">读取管理根下的数据库题库</p>
       </div>
     </header>
 
     <main>
-      <section class="toolbar bank-picker" aria-label="试卷选择">
-        <div class="filter-row">
-          <label class="filter-field">
-            <span>年级</span>
-            <select id="filter-grade" autocomplete="off" disabled>
-              <option value="">全部</option>
-            </select>
-          </label>
-          <label class="filter-field">
-            <span>年份</span>
-            <select id="filter-year" autocomplete="off" disabled>
-              <option value="">全部</option>
-            </select>
-          </label>
-          <label class="filter-field">
-            <span>试卷类型</span>
-            <select id="filter-exam-type" autocomplete="off" disabled>
-              <option value="">全部</option>
-              <option value="一模">一模</option>
-              <option value="二模">二模</option>
-              <option value="期中">期中</option>
-              <option value="期末">期末</option>
-              <option value="中考">中考</option>
-            </select>
-          </label>
-          <label class="filter-field filter-field-search">
-            <span>检索试卷</span>
-            <input id="search-input" type="search" placeholder="题库名 / 年份 / 区…" autocomplete="off">
-          </label>
-          <label class="filter-field filter-field-bank">
-            <span>选择试卷</span>
-            <select id="bank-select" disabled><option value="">正在加载…</option></select>
-          </label>
-        </div>
-        <div class="bank-meta" id="bank-meta">读取管理根下的数据库题库</div>
-      </section>
-
       <p id="page-status" class="page-status" role="status">正在加载…</p>
       <section id="review-layout" class="review-layout" hidden>
         <aside class="question-panel" aria-label="题目列表">
-          <header class="panel-header">
-            <div><p class="eyebrow">ITEMS</p><h2>题目列表</h2></div>
-            <span id="item-count">—</span>
-          </header>
-          <input id="item-filter" type="search" placeholder="筛题号 / item_id…" autocomplete="off" aria-label="卷内题号筛选">
+          <div class="nav-head">
+            <span id="item-count" class="nav-count">—</span>
+            <input
+              id="item-filter"
+              type="search"
+              placeholder="筛选题号…"
+              autocomplete="off"
+              aria-label="卷内题号筛选"
+            />
+          </div>
+          <div class="review-list-filters" aria-label="题目审核筛选">
+            <fieldset>
+              <legend>疑点</legend>
+              <label
+                ><input
+                  type="checkbox"
+                  data-review-filter="issues"
+                  checked
+                />有疑点 <span data-review-count="issues">0</span></label
+              >
+              <label
+                ><input
+                  type="checkbox"
+                  data-review-filter="clean"
+                  checked
+                />无疑点 <span data-review-count="clean">0</span></label
+              >
+            </fieldset>
+            <fieldset>
+              <legend>通过状态</legend>
+              <label
+                ><input
+                  type="checkbox"
+                  data-review-filter="pending"
+                  checked
+                />未通过 <span data-review-count="pending">0</span></label
+              >
+              <label
+                ><input type="checkbox" data-review-filter="passed" />已通过
+                <span data-review-count="passed">0</span></label
+              >
+            </fieldset>
+            <fieldset>
+              <legend>未通过待办</legend>
+              <label
+                ><input
+                  type="checkbox"
+                  data-review-filter="image"
+                  checked
+                />待截图 <span data-review-count="image">0</span></label
+              >
+              <label
+                ><input
+                  type="checkbox"
+                  data-review-filter="review_ai"
+                  checked
+                />看 AI 修订 <span data-review-count="review_ai">0</span></label
+              >
+              <label
+                ><input type="checkbox" data-review-filter="ai" />AI 待处理
+                <span data-review-count="ai">0</span></label
+              >
+            </fieldset>
+            <p
+              id="current-filter-hint"
+              class="filter-selection-hint"
+              role="status"
+              hidden
+            ></p>
+          </div>
+
           <div id="question-list" class="question-list"></div>
+        </aside>
+
+        <aside
+          id="source-lightbox"
+          class="source-compare"
+          aria-labelledby="source-lightbox-title"
+          hidden
+        >
+          <header class="source-compare-header">
+            <h2 id="source-lightbox-title">原卷</h2>
+            <button
+              id="source-lightbox-close"
+              type="button"
+              aria-label="关闭原卷对照"
+              title="关闭原卷对照（Alt+O / Esc）"
+              aria-keyshortcuts="Alt+O Escape"
+            >
+              ×
+            </button>
+          </header>
+          <div class="source-tools">
+            <button id="source-lightbox-prev" type="button" aria-label="上一张">
+              ‹
+            </button>
+            <span id="source-lightbox-counter"></span>
+            <button id="source-lightbox-next" type="button" aria-label="下一张">
+              ›
+            </button>
+            <select id="source-zoom" aria-label="原卷缩放">
+              <option value="1">适合宽度</option>
+              <option value="1.5">放大 1.5 倍</option>
+              <option value="2">放大 2 倍</option>
+              <option value="3">放大 3 倍</option>
+            </select>
+            <select id="source-capture-mode" aria-label="截图方式">
+              <option value="rect">矩形</option>
+              <option value="lasso">自由套索</option>
+            </select>
+            <button
+              id="source-capture-toggle"
+              type="button"
+              aria-pressed="false"
+              title="截图 Alt+S；新增解答图 Alt+Shift+S；松手保存，Esc 取消"
+              aria-keyshortcuts="Alt+S Alt+Shift+S"
+            >
+              框选截图
+            </button>
+            <select
+              id="source-capture-target"
+              aria-label="截图放入位置"
+            ></select>
+            <a
+              id="source-lightbox-open"
+              target="_blank"
+              rel="noopener"
+              title="新页打开完整原图"
+              >↗</a
+            >
+          </div>
+          <div id="source-page-scroll" class="source-page-scroll">
+            <div id="source-image-wrap" class="source-image-wrap">
+              <img
+                id="source-lightbox-image"
+                alt="原卷页面"
+                draggable="false"
+              />
+              <div id="source-selection" hidden></div>
+              <svg id="source-lasso-selection" aria-hidden="true" hidden>
+                <path
+                  id="source-lasso-path"
+                  vector-effect="non-scaling-stroke"
+                ></path>
+              </svg>
+            </div>
+          </div>
+          <div
+            id="source-capture-preview"
+            class="source-capture-preview"
+            hidden
+          >
+            <img id="source-capture-thumbnail" alt="截取预览" />
+            <div class="source-capture-actions">
+              <span id="source-capture-size"></span>
+              <button id="source-capture-reset" type="button">重选</button>
+              <button
+                id="source-capture-apply"
+                class="approve-button"
+                type="button"
+                disabled
+              >
+                放入并保存
+              </button>
+            </div>
+          </div>
+          <footer class="source-compare-footer">
+            <span id="source-lightbox-caption"></span>
+            <button
+              id="source-save"
+              hidden
+              class="approve-button"
+              type="button"
+              title="Ctrl/⌘+S"
+            >
+              保存修改
+            </button>
+            <p id="source-capture-status" role="status"></p>
+          </footer>
         </aside>
 
         <article class="reader" id="reader" aria-live="polite">
           <header class="reader-header">
-            <div><p class="eyebrow" id="item-id">—</p><h2 id="item-title">选择一道题</h2></div>
-            <div id="item-badges" class="badges"></div>
+            <h2 id="item-title">选择一道题</h2>
+            <details id="item-details" class="item-details">
+              <summary>详情</summary>
+              <div class="item-details-body">
+                <p id="item-id" class="detail-id">—</p>
+                <div id="item-badges" class="badges"></div>
+                <div id="source-capsules" class="source-capsules"></div>
+              </div>
+            </details>
           </header>
           <div id="load-error" class="load-error" hidden></div>
-          <div id="item-skeleton" class="qbm-skeleton" hidden aria-hidden="true">
+          <div
+            id="item-skeleton"
+            class="qbm-skeleton"
+            hidden
+            aria-hidden="true"
+          >
             <div class="qbm-skeleton-title"></div>
             <div class="qbm-skeleton-line"></div>
             <div class="qbm-skeleton-line"></div>
@@ -95,157 +316,260 @@
           </div>
           <div id="stale-banner"></div>
 
-
-
-          <section class="reader-section">
-            <div class="section-head"><h3>题目</h3><div id="source-capsules" class="source-capsules"></div></div>
-            <button id="edit-stem" type="button" class="ghost-button qbm-edit-button">编辑</button>
-            <div id="stem" class="source-text"></div>
+          <section class="reader-section" data-field="stem">
+            <div class="section-tools">
+              <button
+                id="edit-stem"
+                type="button"
+                class="section-edit qbm-edit-button"
+              >
+                编辑
+              </button>
+            </div>
+            <div id="stem" class="source-text stem-text"></div>
             <div id="editor-stem" class="qbm-editor">
-              <textarea aria-label="编辑题干" id="editor-stem-text" rows="8" spellcheck="false"></textarea>
+              <textarea
+                aria-label="编辑题干"
+                id="editor-stem-text"
+                rows="8"
+                spellcheck="false"
+              ></textarea>
             </div>
           </section>
 
           <section class="reader-section image-section">
-            <div class="section-head">
-              <h3>题图</h3>
-            </div>
+            <div class="section-tools"></div>
             <div id="prompt-preview" class="preview-well"></div>
           </section>
 
-          <section class="answer-card">
-            <div class="reader-section">
-              <button id="edit-answer" type="button" class="ghost-button qbm-edit-button">编辑</button>
-              <h3>答案</h3>
-              <div id="answer" class="source-text answer-text"></div>
-              <div id="editor-answer" class="qbm-editor">
-                <textarea aria-label="编辑答案" id="editor-answer-text" rows="4" spellcheck="false"></textarea>
-              </div>
+          <section class="reader-section" data-field="answer">
+            <div class="section-tools">
+              <span class="section-label">答案</span>
+              <button
+                id="edit-answer"
+                type="button"
+                class="section-edit qbm-edit-button"
+              >
+                编辑
+              </button>
             </div>
-            <div class="reader-section">
-              <button id="edit-solution" type="button" class="ghost-button qbm-edit-button">编辑</button>
-              <h3>解答</h3>
-              <div id="solution" class="source-text"></div>
-              <div id="editor-solution" class="qbm-editor">
-                <textarea aria-label="编辑解答" id="editor-solution-text" rows="8" spellcheck="false"></textarea>
-              </div>
+            <div id="answer" class="source-text answer-text"></div>
+            <div id="editor-answer" class="qbm-editor">
+              <textarea
+                aria-label="编辑答案"
+                id="editor-answer-text"
+                rows="4"
+                spellcheck="false"
+              ></textarea>
             </div>
           </section>
 
           <section class="reader-section image-section">
-            <div class="section-head">
-              <h3>解答图</h3>
-            </div>
+            <div class="section-tools"></div>
             <div id="solution-preview" class="preview-well"></div>
           </section>
 
+          <section class="reader-section" data-field="solution">
+            <div class="section-tools">
+              <span class="section-label">解答</span>
+              <button
+                id="edit-solution"
+                type="button"
+                class="section-edit qbm-edit-button"
+              >
+                编辑
+              </button>
+            </div>
+            <div id="solution" class="source-text"></div>
+            <div id="editor-solution" class="qbm-editor">
+              <textarea
+                aria-label="编辑解答"
+                id="editor-solution-text"
+                rows="8"
+                spellcheck="false"
+              ></textarea>
+            </div>
+          </section>
 
-
-          <section id="explanations-card" class="reader-section explanations-card" aria-label="小题讲解与解答">
-            <div class="section-head">
-              <div><p class="eyebrow">TEACHING NOTES</p><h3>讲解 / 解答（小题）</h3></div>
+          <section
+            id="explanations-card"
+            class="reader-section explanations-card"
+            aria-label="小题讲解与解答"
+          >
+            <div class="explanations-head">
+              <span class="section-label">讲解 / 解答（小题）</span>
               <span id="explanations-summary"></span>
             </div>
             <div class="explanations-actions">
-              <button id="fill-explanations" type="button" class="ghost-button">补齐缺失讲解</button>
-              <button id="fill-solutions" type="button" class="ghost-button">补齐缺失解答</button>
-              <button id="export-blueprints" type="button" class="approve-button">导出 blueprint 批次</button>
+              <button id="fill-explanations" type="button" class="text-button">
+                补齐缺失讲解
+              </button>
+              <button id="fill-solutions" type="button" class="text-button">
+                补齐缺失解答
+              </button>
+              <button id="export-blueprints" type="button" class="text-button">
+                导出 blueprint 批次
+              </button>
             </div>
-            <p id="explanations-hint" class="explanations-hint"></p>
-            <p id="explanations-message" class="explanations-message" role="status"></p>
+            <details class="explanations-help">
+              <summary>使用说明与服务状态</summary>
+              <p id="explanations-hint" class="explanations-hint"></p>
+            </details>
+            <p
+              id="explanations-message"
+              class="explanations-message"
+              role="status"
+            ></p>
             <div id="explanations-body" class="explanations-body"></div>
           </section>
 
-
-
-
-
           <nav class="reader-nav" aria-label="逐题浏览">
-            <button id="previous-item" type="button"><kbd>←</kbd> 上一题</button>
-            <button id="next-item" type="button">下一题 <kbd>→</kbd></button>
+            <button id="previous-item" type="button" class="text-button">
+              ← 上一题
+            </button>
+            <button id="next-item" type="button" class="text-button">
+              下一题 →
+            </button>
           </nav>
         </article>
-<aside id="review-sidebar" class="review-sidebar" aria-label="审阅与修订">
-  <header class="sidebar-heading"><h2>本题审阅</h2><span id="review-status" class="review-status">待审核</span></header>
-  <div class="sidebar-content">
-    <div id="save-dock"></div>
-    <section id="assist-flow" class="assist-flow" aria-label="修改要求"></section>
-    <section id="proposals-section" class="assist-proposals" hidden>
-            <div class="section-head">
-              <div><h3>AI 修改结果</h3></div>
-              <span id="proposals-summary"></span>
+
+        <aside
+          id="review-sidebar"
+          class="review-sidebar"
+          aria-label="审阅与修订"
+        >
+          <header class="sidebar-heading">
+            <h2>审阅</h2>
+            <span id="review-status" class="review-status">待审核</span>
+            <details id="more-menu" class="more-menu">
+              <summary aria-label="更多操作">⋯</summary>
+              <div class="more-menu-body">
+                <p class="more-menu-label">
+                  发布与导出 · <span id="publication-status">未发布</span>
+                </p>
+                <div class="qbm-manage-actions">
+                  <button id="export-item" type="button" class="text-button">
+                    导出当前修订
+                  </button>
+                  <button id="export-draft" type="button" class="text-button">
+                    导出草稿预览
+                  </button>
+                  <button id="publish-item" type="button" class="text-button">
+                    发布当前修订
+                  </button>
+                  <button id="withdraw-item" type="button" class="text-button">
+                    撤回发布
+                  </button>
+                </div>
+                <p class="more-menu-label">版本历史</p>
+                <div id="revision-history-wrap"></div>
+                <p class="more-menu-label">全卷操作</p>
+                <button
+                  id="repair-paper"
+                  type="button"
+                  class="text-button bulk-button"
+                >
+                  整卷自动修复
+                </button>
+                <button
+                  id="stop-paper-repair"
+                  type="button"
+                  class="text-button"
+                  hidden
+                >
+                  停止自动修复
+                </button>
+                <p
+                  id="paper-repair-message"
+                  class="review-message"
+                  role="status"
+                ></p>
+                <ul id="paper-repair-results" class="paper-repair-results"></ul>
+                <button
+                  id="approve-paper"
+                  type="button"
+                  class="text-button bulk-button"
+                  title="快捷键 Shift+A"
+                >
+                  全卷通过并跳转下一卷
+                </button>
+                <p id="bulk-message" class="review-message" role="status"></p>
+              </div>
+            </details>
+          </header>
+          <div class="sidebar-content">
+            <div id="save-dock"></div>
+            <section
+              id="assist-flow"
+              class="assist-flow"
+              aria-label="修改要求"
+            ></section>
+            <section id="proposals-section" class="assist-proposals" hidden>
+              <div class="proposals-head">
+                <h3>检查结果</h3>
+                <span id="proposals-summary"></span>
+              </div>
+              <div id="proposal-list"></div>
+            </section>
+          </div>
+          <section id="review-card" class="sidebar-footer" aria-label="审核">
+            <p id="review-blocker" class="sidebar-blocker" role="status"></p>
+            <p id="manage-message" class="review-message" role="status"></p>
+            <p id="review-message" class="review-message" role="status"></p>
+            <div class="review-actions">
+              <button
+                id="reject-item"
+                type="button"
+                class="text-button"
+                title="快捷键 R"
+              >
+                要求修改
+              </button>
+              <button
+                id="approve-item"
+                type="button"
+                class="primary-button"
+                title="快捷键 A"
+              >
+                通过本题
+              </button>
             </div>
-            <div id="proposal-list"></div>
           </section>
-    <details class="sidebar-disclosure more-operations">
-      <summary>更多操作</summary>
-      <div class="sidebar-secondary">
-        <details class="sidebar-disclosure"><summary>发布与导出<span id="publication-status" class="review-status">未发布</span></summary>
-          <div class="qbm-manage-actions">
-              <button id="export-item" type="button" class="ghost-button">导出当前修订</button>
-              <button id="export-draft" type="button" class="ghost-button">导出草稿预览</button>
-              <button id="publish-item" type="button" class="approve-button">发布当前修订</button>
-              <button id="withdraw-item" type="button" class="reject-button">撤回发布</button>
-            </div>
-        </details>
-        <details class="sidebar-disclosure"><summary>版本历史</summary><div id="revision-history-wrap"></div></details>
-        <details class="sidebar-disclosure"><summary>全卷操作</summary>
-          <button id="approve-paper" type="button" class="ghost-button bulk-button" title="快捷键 Shift+A">全卷通过并跳转下一卷</button>
-          <p id="bulk-message" class="review-message" role="status"></p>
-        </details>
-      </div>
-    </details>
-  </div>
-  <section id="review-card" class="sidebar-footer" aria-label="审核">
-    <p id="review-blocker" class="sidebar-blocker" role="status"></p>
-    <p id="manage-message" class="review-message" role="status"></p>
-    <p id="review-message" class="review-message" role="status"></p>
-    <div class="review-actions">
-      <button id="reject-item" type="button" class="ghost-button" title="快捷键 R">要求修改</button>
-      <button id="approve-item" type="button" class="approve-button" title="快捷键 A">通过本题</button>
-    </div>
-  </section>
-</aside>
+        </aside>
       </section>
     </main>
 
-    <dialog id="revision-dialog" class="review-dialog" aria-labelledby="revision-dialog-title">
+    <dialog
+      id="revision-dialog"
+      class="review-dialog"
+      aria-labelledby="revision-dialog-title"
+    >
       <form id="revision-form" class="review-dialog-form" novalidate>
         <div>
-          <p class="eyebrow">REVISION REQUEST</p>
           <h2 id="revision-dialog-title">填写修改意见</h2>
           <p id="revision-item-label" class="dialog-subtitle"></p>
         </div>
         <label for="revision-note"><span>需要修改什么？</span></label>
-        <textarea id="revision-note" rows="6" maxlength="4000" required
-          placeholder="请写明漏图、转写、公式、裁切或解答中的具体问题"></textarea>
+        <textarea
+          id="revision-note"
+          rows="6"
+          maxlength="4000"
+          required
+          placeholder="请写明漏图、转写、公式、裁切或解答中的具体问题"
+        ></textarea>
         <p id="revision-error" class="revision-error" role="alert"></p>
-        <p class="dialog-shortcut">按 <kbd>Esc</kbd> 取消，<kbd>Ctrl/⌘</kbd> + <kbd>Enter</kbd> 提交</p>
+        <p class="dialog-shortcut">
+          按 <kbd>Esc</kbd> 取消，<kbd>Ctrl/⌘</kbd> + <kbd>Enter</kbd> 提交
+        </p>
         <div class="dialog-actions">
-          <button id="cancel-revision" type="button">取消</button>
-          <button id="confirm-revision" type="submit" class="reject-button">确认要求修改</button>
+          <button id="cancel-revision" type="button" class="text-button">
+            取消
+          </button>
+          <button id="confirm-revision" type="submit" class="danger-button">
+            提交给 AI 修改
+          </button>
         </div>
       </form>
-    </dialog>
-
-    <dialog id="source-lightbox" class="review-dialog source-lightbox" aria-labelledby="source-lightbox-title">
-      <div class="source-lightbox-frame">
-        <header class="source-lightbox-header">
-          <div><p class="eyebrow">SOURCE</p><h2 id="source-lightbox-title">来源</h2></div>
-          <button id="source-lightbox-close" type="button" class="source-lightbox-close" aria-label="关闭">✕</button>
-        </header>
-        <div class="source-lightbox-stage">
-          <button id="source-lightbox-prev" type="button" class="source-lightbox-nav" aria-label="上一张">◀</button>
-          <a id="source-lightbox-open" class="source-lightbox-open" href="#" target="_blank" rel="noopener" title="在新页打开原图">
-            <img id="source-lightbox-image" alt="">
-          </a>
-          <button id="source-lightbox-next" type="button" class="source-lightbox-nav" aria-label="下一张">▶</button>
-        </div>
-        <footer class="source-lightbox-footer">
-          <span id="source-lightbox-caption" class="source-lightbox-caption"></span>
-          <span id="source-lightbox-counter" class="source-lightbox-counter"></span>
-        </footer>
-      </div>
     </dialog>
 
     <div id="conflict-backdrop" class="qbm-conflict-backdrop">

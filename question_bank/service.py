@@ -25,6 +25,7 @@ from question_bank import db as db_mod
 from question_bank import catalog
 from question_bank import export as export_mod
 from question_bank.assets import AssetStore
+from question_bank.auto_review import AutoReviewMixin
 from question_bank.teaching import TeachingNotesMixin
 from question_bank.canonical import (
     CONTENT_SCHEMA,
@@ -65,7 +66,7 @@ def _write_locked(method):
     return wrapper
 
 
-class QuestionBankService(TeachingNotesMixin):
+class QuestionBankService(AutoReviewMixin, TeachingNotesMixin):
     def __init__(self, root: str | Path, *, database_schema: str | None = None,
                  oss: bool | None = None):
         self.root = Path(root).expanduser().resolve()
@@ -91,6 +92,16 @@ class QuestionBankService(TeachingNotesMixin):
                 self._connections.append(conn)
             self._local.conn = conn
         return conn
+
+    def close_thread_connection(self) -> None:
+        """Release only the background worker's connection."""
+        conn = getattr(self._local, "conn", None)
+        if conn is not None:
+            with self._connections_lock:
+                if conn in self._connections:
+                    self._connections.remove(conn)
+                conn.close()
+            del self._local.conn
 
     def close(self) -> None:
         with self._connections_lock:
@@ -871,6 +882,7 @@ class QuestionBankService(TeachingNotesMixin):
         *,
         actor_kind: str = "human",
         actor_id: str = "review-ui",
+        issue_resolution: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         from question_bank.models import SaveEditRequest
 
@@ -937,7 +949,7 @@ class QuestionBankService(TeachingNotesMixin):
                         )
             issues_data = [i.model_dump() for i in base_content.issues]
             issue_changes = self._apply_issue_ops(issues_data, parsed.issue_ops,
-                                                  item_id)
+                                                  item_id, issue_resolution=issue_resolution)
             new_data["issues"] = issues_data
             new_content = ItemContent.model_validate(new_data)
             validation_errors = self.validate_content(
@@ -1128,7 +1140,8 @@ class QuestionBankService(TeachingNotesMixin):
         ).fetchall()
         return [self._proposal_receipt(r) for r in rows]
 
-    def accept_proposal(self, proposal_id: str, request: dict[str, Any]) -> dict[str, Any]:
+    def accept_proposal(self, proposal_id: str, request: dict[str, Any], *,
+                        issue_resolution: dict[str, str] | None = None) -> dict[str, Any]:
         operation_id = str(request.get("operation_id", "")).strip()
         if not OPERATION_ID_PATTERN.match(operation_id):
             raise QbError([
@@ -1186,6 +1199,7 @@ class QuestionBankService(TeachingNotesMixin):
         save_receipt = self.save_edit(
             item_id, save_request,
             actor_kind="ai", actor_id=f"proposal:{proposal_id}",
+            issue_resolution=issue_resolution,
         )
         if save_receipt["status"] == "saved":
             new_status, accepted_rev = "accepted", save_receipt["revision"]
@@ -1250,6 +1264,7 @@ class QuestionBankService(TeachingNotesMixin):
         issues_data: list[dict[str, Any]],
         issue_ops: list[dict[str, Any]] | None,
         item_id: str,
+        *, issue_resolution: dict[str, str] | None = None,
     ) -> int:
         if not issue_ops:
             return 0
@@ -1278,7 +1293,9 @@ class QuestionBankService(TeachingNotesMixin):
             resolution = dict(issue.get("resolution") or {})
             if op.get("note"):
                 resolution["note"] = str(op["note"])
-            resolution["actor"] = "human"
+            resolution["actor"] = (issue_resolution or {}).get("actor_kind", "human")
+            if issue_resolution:
+                resolution["actor_id"] = issue_resolution["actor_id"]
             resolution["at"] = db_mod.utc_now()
             issue["resolution"] = resolution
         return changes
@@ -1927,6 +1944,7 @@ class QuestionBankService(TeachingNotesMixin):
                 "check_passed": bool(check["passed"]) if check else None,
                 "open_blocking_issues": blocking,
                 "published_revision": head["revision"] if head else None,
+                **self.review_metadata(item_id, revision),
             })
         return result
 
@@ -2055,6 +2073,7 @@ class QuestionBankService(TeachingNotesMixin):
             "hash_version": rev_row["hash_version"],
             "revisions": [dict(r) for r in revisions],
         }
+        detail.update(self.review_metadata(item_id, revision))
         return detail
 
     def submission_receipt(self, submission_id: str) -> dict[str, Any]:

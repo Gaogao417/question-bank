@@ -1,0 +1,18 @@
+.paper-repair-results {
+  max-height: 240px;
+  overflow: auto;
+  padding-left: 20px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.paper-repair-results:empty {
+  display: none;
+}
+.paper-repair-results p {
+  margin: 2px 0 8px;
+  overflow-wrap: anywhere;
+}
+.paper-repair-results a {
+  color: var(--accent, #355b81);
+}
