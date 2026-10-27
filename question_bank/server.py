@@ -16,6 +16,7 @@ from fastapi import FastAPI, HTTPException, Query, Request, Response
 from starlette.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.gzip import GZipMiddleware
 
 from question_bank import export as export_mod
 from question_bank.errors import QbError, ReceiptError
@@ -47,6 +48,7 @@ def _oss_redirect(key: str) -> Response:
 
 def create_app(root: str | Path) -> FastAPI:
     app = FastAPI(title="question-bank-manage", version="b1")
+    app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)
     state: dict[str, QuestionBankService] = {}
 
     repair_state: dict[str, object] = {}

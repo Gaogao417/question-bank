@@ -378,3 +378,47 @@ class TestCatalogApi:
         missing = client_bank.post("/api/papers/NO-SUCH/review-all",
                                    json={**payload, "operation_id": "api-rvall-2"})
         assert missing.status_code == 404
+
+
+def test_directory_batched_metadata_matches_detail_paths(bank, monkeypatch):
+    """Batching must preserve note freshness and human/AI review routing."""
+    from question_bank.db import Connection
+
+    original = Connection.execute
+    queries = []
+
+    def counted(conn, query, *args, **kwargs):
+        queries.append(str(query))
+        return original(conn, query, *args, **kwargs)
+
+    # Initialize this thread's connection before counting application queries.
+    _ = bank.conn
+    monkeypatch.setattr(Connection, "execute", counted)
+    for paper_id in ("2024-DEMO-A", "2025-DEMO-B"):
+        queries.clear()
+        directory = bank.paper_item_directory(paper_id)
+        assert len(queries) == 4
+        for item in directory:
+            assert item["notes_summary"] == bank._notes_summary_for_item(item["item_id"])
+            metadata = bank.review_metadata(item["item_id"], item["revision"])
+            assert {key: item[key] for key in metadata} == metadata
+
+
+def test_filtered_catalog_only_loads_matching_states(bank, monkeypatch):
+    from question_bank import catalog
+
+    original = catalog._state_rows
+    selected = []
+
+    def tracked(conn, paper_ids):
+        selected.append(paper_ids)
+        return original(conn, paper_ids)
+
+    monkeypatch.setattr(catalog, "_state_rows", tracked)
+    result = bank.paper_catalog(year=2024)
+    assert selected == [["2024-DEMO-A"]]
+    assert result["facets"]["years"] == [2025, 2024]
+    assert len(result["papers"]) == 1
+    selected.clear()
+    assert bank.paper_catalog(year=1999)["papers"] == []
+    assert selected == [[]]

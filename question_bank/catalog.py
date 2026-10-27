@@ -7,7 +7,7 @@
 - 统计全部基于当前修订：pending / approved / rejected / stale 互斥；
   blocked（未决阻断疑点或结构检查未过）与 published_current 为重叠维度。
   旧修订批准、新修订未审核 → stale，不再计入 approved。
-- 查询为批量聚合（每类状态各一条 SQL），不逐题解析修订正文，避免 N+1。
+- 按命中卷读取当前状态，一次 SQL，不传输全库历史，不逐题解析修订正文。
 """
 
 from __future__ import annotations
@@ -140,110 +140,51 @@ def parse_paper_meta(
 # ----------------------------------------------------------------------
 
 
-def _latest_reviews(conn: db_mod.Connection) -> dict[tuple[str, int], str]:
-    """每个 (item, revision) 的最新复核决定。"""
-    rows = conn.execute(
-        "SELECT r.item_id, r.revision, r.decision FROM reviews r"
-        " JOIN (SELECT item_id, revision, MAX(review_id) AS mid FROM reviews"
-        "       GROUP BY item_id, revision) m ON r.review_id = m.mid"
+def _state_rows(conn: db_mod.Connection, paper_ids: list[str]) -> list[dict[str, Any]]:
+    """One round trip, current heads only, restricted to selected papers.
+
+    Lateral lookups use existing item/revision indexes and never transfer review
+    history to Python. EXISTS preserves stale semantics without fetching history.
+    """
+    if not paper_ids:
+        return []
+    return conn.execute(
+        """
+        SELECT i.item_id, i.paper_id, i.question_number,
+               i.current_revision AS revision,
+               CASE WHEN r.decision IN ('approved', 'rejected') THEN r.decision
+                    WHEN EXISTS (SELECT 1 FROM reviews h WHERE h.item_id=i.item_id)
+                    THEN 'stale' ELSE 'pending' END AS review_status,
+               x.n AS open_blocking_issues, c.passed AS check_passed,
+               (x.n > 0 OR COALESCE(c.passed = 0, FALSE)) AS blocked,
+               CASE WHEN p.revision=i.current_revision THEN p.revision END AS published_revision
+        FROM items i
+        LEFT JOIN LATERAL (
+            SELECT decision FROM reviews WHERE item_id=i.item_id
+            AND revision=i.current_revision ORDER BY review_id DESC LIMIT 1
+        ) r ON TRUE
+        LEFT JOIN LATERAL (
+            SELECT passed FROM checks WHERE item_id=i.item_id
+            AND revision=i.current_revision ORDER BY check_id DESC LIMIT 1
+        ) c ON TRUE
+        LEFT JOIN LATERAL (
+            SELECT COUNT(*) AS n FROM issues WHERE item_id=i.item_id
+            AND revision=i.current_revision AND state='open' AND blocking=1
+        ) x ON TRUE
+        LEFT JOIN publication_heads h ON h.item_id=i.item_id
+        LEFT JOIN publications p ON p.publication_id=h.publication_id
+        WHERE i.paper_id=ANY(%s) AND i.current_revision IS NOT NULL
+        ORDER BY i.paper_id, i.question_number
+        """, (paper_ids,),
     ).fetchall()
-    return {(row["item_id"], row["revision"]): row["decision"] for row in rows}
 
 
-def _reviewed_revisions(conn: db_mod.Connection) -> dict[str, set[int]]:
-    """每道题有复核记录的修订集合（用于判定 stale）。"""
-    result: dict[str, set[int]] = {}
-    for row in conn.execute(
-        "SELECT DISTINCT item_id, revision FROM reviews"
-    ).fetchall():
-        result.setdefault(row["item_id"], set()).add(row["revision"])
-    return result
-
-
-def _open_blocking(conn: db_mod.Connection) -> dict[tuple[str, int], int]:
-    rows = conn.execute(
-        "SELECT item_id, revision, COUNT(*) AS n FROM issues"
-        " WHERE state = 'open' AND blocking = 1 GROUP BY item_id, revision"
-    ).fetchall()
-    return {(row["item_id"], row["revision"]): row["n"] for row in rows}
-
-
-def _latest_checks(conn: db_mod.Connection) -> dict[tuple[str, int], bool]:
-    rows = conn.execute(
-        "SELECT c.item_id, c.revision, c.passed FROM checks c"
-        " JOIN (SELECT item_id, revision, MAX(check_id) AS cid FROM checks"
-        "       GROUP BY item_id, revision) m ON c.check_id = m.cid"
-    ).fetchall()
-    return {(row["item_id"], row["revision"]): bool(row["passed"]) for row in rows}
-
-
-def _published_heads(conn: db_mod.Connection) -> dict[str, int]:
-    rows = conn.execute(
-        "SELECT h.item_id, p.revision FROM publication_heads h"
-        " JOIN publications p ON p.publication_id = h.publication_id"
-    ).fetchall()
-    return {row["item_id"]: row["revision"] for row in rows}
-
-
-def _classify_item(
-    *,
-    item_id: str,
-    current: int | None,
-    latest_reviews: dict[tuple[str, int], str],
-    reviewed_revisions: dict[str, set[int]],
-    open_blocking: dict[tuple[str, int], int],
-    latest_checks: dict[tuple[str, int], bool],
-    published: dict[str, int],
-) -> dict[str, Any] | None:
-    """单题当前修订状态。current 为 None（未接收）不入目录。"""
-    if current is None:
-        return None
-    decision = latest_reviews.get((item_id, current))
-    if decision == "approved":
-        status = "approved"
-    elif decision == "rejected":
-        status = "rejected"
-    elif reviewed_revisions.get(item_id):
-        status = "stale"
-    else:
-        status = "pending"
-    check_passed = latest_checks.get((item_id, current))
-    blocked = bool(open_blocking.get((item_id, current))) or check_passed is False
-    return {
-        "revision": current,
-        "review_status": status,
-        "open_blocking_issues": open_blocking.get((item_id, current), 0),
-        "check_passed": check_passed,
-        "blocked": blocked,
-        "published_revision": (
-            published.get(item_id) if published.get(item_id) == current else None
-        ),
-    }
-
-
-def _paper_states(conn: db_mod.Connection) -> dict[str, dict[str, dict[str, Any]]]:
-    """paper_id → {item_id → 状态字典}（当前修订）。"""
-    latest_reviews = _latest_reviews(conn)
-    reviewed_revisions = _reviewed_revisions(conn)
-    open_blocking = _open_blocking(conn)
-    latest_checks = _latest_checks(conn)
-    published = _published_heads(conn)
+def _paper_states(conn: db_mod.Connection, paper_ids: list[str]) -> dict[str, dict[str, dict[str, Any]]]:
     result: dict[str, dict[str, dict[str, Any]]] = {}
-    for row in conn.execute(
-        "SELECT item_id, paper_id, current_revision FROM items"
-        " ORDER BY paper_id, question_number"
-    ).fetchall():
-        state = _classify_item(
-            item_id=row["item_id"],
-            current=row["current_revision"],
-            latest_reviews=latest_reviews,
-            reviewed_revisions=reviewed_revisions,
-            open_blocking=open_blocking,
-            latest_checks=latest_checks,
-            published=published,
-        )
-        if state is not None:
-            result.setdefault(row["paper_id"], {})[row["item_id"]] = state
+    for row in _state_rows(conn, paper_ids):
+        if row["check_passed"] is not None:
+            row["check_passed"] = bool(row["check_passed"])
+        result.setdefault(row["paper_id"], {})[row["item_id"]] = row
     return result
 
 
@@ -283,14 +224,6 @@ def paper_catalog(
     paper_rows = conn.execute(
         "SELECT * FROM papers ORDER BY paper_id"
     ).fetchall()
-    states = _paper_states(conn)
-    expected_rows = conn.execute(
-        "SELECT paper_id, COUNT(*) AS expected,"
-        " SUM(CASE WHEN item_id IS NULL THEN 1 ELSE 0 END) AS missing"
-        " FROM paper_items GROUP BY paper_id"
-    ).fetchall()
-    expected = {row["paper_id"]: (row["expected"], row["missing"]) for row in expected_rows}
-
     entries: list[dict[str, Any]] = []
     facet_years: dict[int, int] = {}
     facet_districts: dict[str, int] = {}
@@ -301,7 +234,6 @@ def paper_catalog(
         meta = parse_paper_meta(
             row["paper_id"], row["title"], grade=row["grade"]
         )
-        paper_states = states.get(row["paper_id"], {})
         entry = {
             "paper_id": row["paper_id"],
             "title": row["title"],
@@ -310,10 +242,6 @@ def paper_catalog(
             "source_archive": row["source_archive"],
             "expected_state": row["expected_state"],
             "meta": meta,
-            "stats": _stats(paper_states),
-            "expected_count": expected.get(row["paper_id"], (None, None))[0],
-            "missing_count": expected.get(row["paper_id"], (None, None))[1],
-            "first_item_id": next(iter(paper_states), None),
         }
         # facets 统计全量（不受当前筛选影响），与老版 /api/banks/facets 语义一致。
         if meta["year"] is not None:
@@ -346,6 +274,24 @@ def paper_catalog(
                 continue
         entries.append(entry)
 
+    # Filter cheap metadata first; facets still describe the entire catalog.
+    paper_ids = [entry["paper_id"] for entry in entries]
+    states = _paper_states(conn, paper_ids)
+    expected_rows = conn.execute(
+        "SELECT paper_id, COUNT(*) AS expected,"
+        " SUM(CASE WHEN item_id IS NULL THEN 1 ELSE 0 END) AS missing"
+        " FROM paper_items WHERE paper_id=ANY(%s) GROUP BY paper_id",
+        (paper_ids,),
+    ).fetchall() if paper_ids else []
+    expected = {row["paper_id"]: row for row in expected_rows}
+    for entry in entries:
+        paper_states = states.get(entry["paper_id"], {})
+        counts = expected.get(entry["paper_id"], {})
+        entry.update(stats=_stats(paper_states),
+                     expected_count=counts.get("expected"),
+                     missing_count=counts.get("missing"),
+                     first_item_id=next(iter(paper_states), None))
+
     return {
         "papers": entries,
         "facets": {
@@ -361,34 +307,11 @@ def paper_item_directory(
     conn: db_mod.Connection, paper_id: str
 ) -> list[dict[str, Any]]:
     """单卷题目目录（轻量，不含正文）：供切卷与连续审核使用。"""
-    latest_reviews = _latest_reviews(conn)
-    reviewed_revisions = _reviewed_revisions(conn)
-    open_blocking = _open_blocking(conn)
-    latest_checks = _latest_checks(conn)
-    published = _published_heads(conn)
-    rows = conn.execute(
-        "SELECT item_id, question_number, current_revision FROM items"
-        " WHERE paper_id = %s ORDER BY question_number",
-        (paper_id,),
-    ).fetchall()
-    directory: list[dict[str, Any]] = []
-    for row in rows:
-        state = _classify_item(
-            item_id=row["item_id"],
-            current=row["current_revision"],
-            latest_reviews=latest_reviews,
-            reviewed_revisions=reviewed_revisions,
-            open_blocking=open_blocking,
-            latest_checks=latest_checks,
-            published=published,
-        )
-        if state is None:
-            continue
-        directory.append({
-            "item_id": row["item_id"],
-            "question_number": row["question_number"],
-            **state,
-        })
+    directory = _state_rows(conn, [paper_id])
+    for row in directory:
+        row.pop("paper_id")
+        if row["check_passed"] is not None:
+            row["check_passed"] = bool(row["check_passed"])
     return directory
 
 

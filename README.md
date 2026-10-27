@@ -77,3 +77,7 @@ QB_DATABASE_SCHEMA=restored_bank .venv/bin/question-bank restore --source /path/
 外部电脑可通过同一服务远程录入：`question-bank-agent upload --package ./candidate --server https://your-server`，或现有 `submit --materials … --task … --server …`；仅需服务地址与 Basic Auth 凭证，无需数据库或 OSS 配置。查询使用 `question-bank-agent receipt --server … --submission-id …`。直连方式保留；包限制、超时后恢复和完整命令见 [远程录入指南](docs/remote-ingestion.md)。
 
 当前主机 Review UI 和远程录入 API 共用 8890，`question-bank.service` 已启用开机启动并重启验证。配置、管理命令与验证边界见 [服务器启动说明](docs/server-startup.md)。最新远程功能完整回归 221 项通过；部署后认证、UI、健康检查及新接口只读验证通过。
+
+## 交互性能
+
+目录与切题的性能目标、测量口径、规模验收和本地诊断入口见 [题库交互性能指标](docs/ui-performance.md)。

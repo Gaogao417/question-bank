@@ -1,0 +1,12 @@
+Created dedicated test database qb_perf_test_6e99ba0f89a3
+PYTEST_EXIT 0
+PASS catalog and reader usable while MathJax is stalled
+HTTP 200 http://127.0.0.1:38127/static/vendor/mathjax-4.1.3/tex-mml-chtml.js
+PASS local formula rendering and font loading without external requests
+REQUESTFAILED http://127.0.0.1:38127/api/papers?year=2015 net::ERR_ABORTED
+PASS latest filter wins over a delayed canceled request
+REQUESTFAILED http://127.0.0.1:38127/api/items?paper_id=2015-SONGJIANG-ERMO net::ERR_ABORTED
+PASS latest paper wins over delayed directory; no browser errors
+[{"name":"api-catalog","count":4,"failures":0,"canceled":1,"p50":49.1,"p95":90.7,"p99":90.7},{"name":"catalog-ready","count":3,"failures":0,"canceled":0,"p50":50.9,"p95":95.3,"p99":95.3},{"name":"api-directory","count":4,"failures":0,"canceled":1,"p50":69.6,"p95":79,"p99":79},{"name":"directory-ready","count":3,"failures":0,"canceled":0,"p50":76.1,"p95":79.9,"p99":79.9},{"name":"api-other","count":15,"failures":0,"canceled":0,"p50":163.6,"p95":251.1,"p99":251.1},{"name":"item-ready-network","count":2,"failures":0,"canceled":0,"p50":98.9,"p95":129.7,"p99":129.7},{"name":"first-item-ready","count":1,"failures":0,"canceled":0,"p50":614.3,"p95":614.3,"p99":614.3},{"name":"item-ready-cached","count":1,"failures":0,"canceled":0,"p50":9.4,"p95":9.4,"p99":9.4}]
+E2E test_qb_performance.mjs EXIT 0
+Removed dedicated test database qb_perf_test_6e99ba0f89a3
