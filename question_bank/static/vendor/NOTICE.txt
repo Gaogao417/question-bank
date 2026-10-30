@@ -1,0 +1,7 @@
+MathJax 4.1.3 and @mathjax/mathjax-newcm-font 4.1.3
+Source: https://registry.npmjs.org/mathjax/-/mathjax-4.1.3.tgz
+Source: https://registry.npmjs.org/@mathjax/mathjax-newcm-font/-/mathjax-newcm-font-4.1.3.tgz
+Both npm packages declare Apache-2.0; license text is included.
+MathJax is distributed with all runtime components, including speech data.
+The font package includes the CHTML entry, dynamic extensions and WOFF2 files.
+Server-side source, examples and SVG-only font assets are omitted.

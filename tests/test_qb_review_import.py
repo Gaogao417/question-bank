@@ -108,6 +108,9 @@ def test_review_routes_and_static_files(tmp_path, monkeypatch):
             assert (await client.get('/api/papers/test/auto-repair')).json() == {'job': None}
             assert (await client.post('/api/papers/test/auto-repair', json={})).status_code == 400
             assert (await client.post('/api/papers/test/auto-repair/stop')).status_code == 404
+            response = await client.get('/static/app.js', headers={'Accept-Encoding': 'gzip'})
+            assert response.headers['content-encoding'] == 'gzip'
+            assert response.text == (server.STATIC_DIR / 'app.js').read_text()
     asyncio.run(check())
     html = (server.STATIC_DIR / 'index.html').read_text()
     for name in ('paper-repair.js', 'paper-repair.css', 'review-filters.js', 'source-capture.js'):
@@ -139,21 +142,23 @@ def test_postgresql_repair_and_review_metadata(tmp_path, monkeypatch):
         assert updated['issues'][0]['resolution']['actor'] == 'ai'
         assert updated['review_workflow'] == 'ai_revised'
         assert svc.list_items()[0]['review_task'] == 'review_ai'
+        assert svc.paper_item_directory('2026-DEMO')[0]['review_task'] == 'review_ai'
         assert updated['reviews'] == []
     finally:
         svc.close()
 
 
-def test_paper_directory_exposes_review_filters(monkeypatch):
-    from question_bank import catalog
-    svc = QuestionBankService.__new__(QuestionBankService)
-    svc._local = threading.local()
-    svc._local.conn = SimpleNamespace(closed=False, info=SimpleNamespace(transaction_status=0),
-        execute=lambda *a: SimpleNamespace(fetchone=lambda: {"exists": 1}))
-    monkeypatch.setattr(catalog, 'paper_item_directory', lambda *a: [{"item_id": "test", "revision": 2}])
-    monkeypatch.setattr(svc, '_notes_summary_for_item', lambda *a: {})
-    def metadata(item_id, revision):
-        assert (item_id, revision) == ('test', 2)
-        return {'review_task': 'review_ai', 'review_workflow': 'ai_revised'}
-    monkeypatch.setattr(svc, 'review_metadata', metadata)
-    assert svc.paper_item_directory('paper')[0]['review_task'] == 'review_ai'
+def test_paper_directory_exposes_review_filters(tmp_path):
+    from tests.test_qb_manage_service import make_package
+    svc = QuestionBankService(tmp_path / "directory-bank", oss=False)
+    try:
+        svc.submit_candidate(make_package(tmp_path, issues=[{
+            "issue_id": "check-answer", "type": "answer", "reason": "复核答案",
+            "target": "answer", "blocking": False,
+        }]))
+        item = svc.paper_item_directory("2026-DEMO")[0]
+        assert item["review_task"] == "ai"
+        detail = svc.item_detail(item["item_id"])
+        assert item["review_workflow"] == detail["review_workflow"]
+    finally:
+        svc.close()

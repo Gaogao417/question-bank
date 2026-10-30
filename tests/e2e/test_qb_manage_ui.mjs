@@ -164,7 +164,7 @@ async function main() {
   const stemText = await page.$eval("#stem", (n) => n.textContent);
   run(stemText.includes("二次函数"), "题目正文渲染", stemText.slice(0, 40));
   const answerText = await page.$eval("#answer", (n) => n.textContent);
-  run(answerText.includes("x=2"), "答案正文渲染");
+  run(answerText.normalize("NFKC").replace(/\s/g, "").includes("x=2"), "答案正文渲染");
   const badges = await page.$eval("#item-badges", (n) => n.textContent);
   run(badges.includes("当前 r1"), "徽章显示当前修订 r1", badges);
   run(await page.$$eval("#prompt-preview .preview-card", (ns) => ns.length === 1),
@@ -179,7 +179,7 @@ async function main() {
   // Established source gallery: one capsule, ordered pages, keyboard stays in gallery.
   run(await page.$$("input[type=number]").then(ns => ns.length === 0), "没有新增裁框坐标控件");
   await page.click("#source-capsules .source-capsule");
-  await page.waitForSelector("#source-lightbox[open]");
+  await page.waitForSelector("#source-lightbox:not([hidden])");
   run(await page.$eval("#source-lightbox-counter", n => n.textContent === "1 / 2"), "来源图廊第一页");
   await page.keyboard.press("ArrowRight");
   run(await page.$eval("#source-lightbox-caption", n => n.textContent.includes("第 5 页")), "方向键翻到来源第5页");

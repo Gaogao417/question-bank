@@ -1874,39 +1874,83 @@ class QuestionBankService(AutoReviewMixin, TeachingNotesMixin):
                       item_key=paper_id, retryable=False)
             ])
         directory = catalog.paper_item_directory(self.conn, paper_id)
+        if not directory:
+            return directory
+        # Fixed round-trip count; no per-item/per-note database reads.
+        snapshots = self.conn.execute(
+            """
+            SELECT i.item_id, selected.revision, v.content,
+                   r.decision, r.actor_kind, r.actor_id,
+                   (SELECT COUNT(*) FROM issues x WHERE x.item_id=i.item_id
+                    AND x.revision=selected.revision AND x.state='open') AS open_issues,
+                   h.revision AS reviewed,
+                   EXISTS (SELECT 1 FROM revisions a WHERE a.item_id=i.item_id
+                           AND a.revision>COALESCE(h.revision,0)
+                           AND a.revision<=selected.revision AND a.actor_kind='ai'
+                           AND a.parent_revision IS NOT NULL) AS ai_changed
+            FROM items i JOIN unnest(%s::text[], %s::integer[]) AS selected(item_id, revision)
+                ON selected.item_id=i.item_id JOIN revisions v ON v.item_id=i.item_id AND v.revision=selected.revision
+            LEFT JOIN LATERAL (SELECT decision, actor_kind, actor_id FROM reviews
+                WHERE item_id=i.item_id AND revision=selected.revision
+                ORDER BY review_id DESC LIMIT 1) r ON TRUE
+            LEFT JOIN LATERAL (SELECT MAX(revision) AS revision FROM reviews
+                WHERE item_id=i.item_id AND revision<selected.revision) h ON TRUE
+            WHERE i.paper_id=%s
+            """, ([entry["item_id"] for entry in directory],
+                  [entry["revision"] for entry in directory], paper_id),
+        ).fetchall()
+        by_item = {row["item_id"]: row for row in snapshots}
+        note_rows = self.conn.execute(
+            "SELECT n.item_id, n.note_id, v.subquestion_id, v.explanation_text,"
+            " v.solution_text, v.source_revision, v.stem_fingerprint"
+            " FROM teaching_notes n JOIN items i ON i.item_id=n.item_id"
+            " LEFT JOIN teaching_note_versions v ON v.note_id=n.note_id AND v.version=n.current_version"
+            " WHERE i.paper_id=%s AND n.deleted=0", (paper_id,),
+        ).fetchall()
+        notes_by_item: dict[str, list] = {}
+        for note in note_rows:
+            notes_by_item.setdefault(note["item_id"], []).append(note)
         for entry in directory:
-            entry["notes_summary"] = self._notes_summary_for_item(entry["item_id"])
-            entry.update(self.review_metadata(entry["item_id"], entry["revision"]))
+            row = by_item[entry["item_id"]]
+            content = ItemContent.model_validate(json.loads(row["content"]))
+            entry["notes_summary"] = self._summarize_notes(
+                content, entry["revision"], notes_by_item.get(entry["item_id"], [])
+            )
+            entry.update(self.review_metadata(entry["item_id"], entry["revision"], snapshot={
+                "review": row if row["decision"] is not None else None,
+                "open_issues": row["open_issues"], "reviewed": row["reviewed"],
+                "ai_changed": row["ai_changed"], "content": content,
+            }))
         return directory
 
     def _notes_summary_for_item(self, item_id: str) -> dict[str, Any]:
-        from question_bank.teaching import derive_subquestions, stem_fingerprint
-
         item_row = self._item_row(item_id)
         current = item_row["current_revision"] if item_row else None
         if current is None:
             return {"missing_explanation": 0, "missing_solution_count": 0,
                     "stale_notes": 0, "note_count": 0}
         content = self._content_of(item_id, current)
+        notes = self.conn.execute(
+            "SELECT n.note_id, v.subquestion_id, v.explanation_text, v.solution_text,"
+            " v.source_revision, v.stem_fingerprint FROM teaching_notes n"
+            " LEFT JOIN teaching_note_versions v ON v.note_id=n.note_id AND v.version=n.current_version"
+            " WHERE n.item_id=%s AND n.deleted=0", (item_id,),
+        ).fetchall()
+        return self._summarize_notes(content, current, notes)
+
+    @staticmethod
+    def _summarize_notes(content: ItemContent, current: int, notes: list) -> dict[str, Any]:
+        from question_bank.teaching import derive_subquestions, stem_fingerprint
+
         derived = derive_subquestions(content.stem)
         prints = {e["id"]: stem_fingerprint(e["stem"]) for e in derived}
-        notes = self.conn.execute(
-            "SELECT n.note_id, n.current_version FROM teaching_notes n"
-            " WHERE n.item_id = %s AND n.deleted = 0", (item_id,),
-        ).fetchall()
         if not notes:
             return {"missing_explanation": len(derived), "missing_solution_count": 0,
                     "stale_notes": 0, "note_count": 0}
         grouped: dict[str, list] = {e["id"]: [] for e in derived}
         stale = 0
-        for note in notes:
-            vrow = self.conn.execute(
-                "SELECT subquestion_id, explanation_text, solution_text,"
-                " source_revision, stem_fingerprint FROM teaching_note_versions"
-                " WHERE note_id = %s AND version = %s",
-                (note["note_id"], note["current_version"]),
-            ).fetchone()
-            if vrow is None:
+        for vrow in notes:
+            if vrow["source_revision"] is None:
                 continue
             subq_stale = (
                 vrow["source_revision"] != current

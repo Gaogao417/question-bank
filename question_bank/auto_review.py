@@ -132,16 +132,20 @@ class AutoReviewMixin:
             ).fetchone()
         )
 
-    def review_metadata(self, item_id: str, revision: int | None) -> dict[str, Any]:
-        review = self.conn.execute(
-            "SELECT decision, actor_kind, actor_id FROM reviews WHERE item_id = %s AND revision = %s"
-            " ORDER BY review_id DESC LIMIT 1",
-            (item_id, revision),
-        ).fetchone()
-        open_issues = self.conn.execute(
-            "SELECT COUNT(*) AS count FROM issues WHERE item_id = %s AND revision = %s AND state = 'open'",
-            (item_id, revision),
-        ).fetchone()["count"]
+    def review_metadata(self, item_id: str, revision: int | None, *, snapshot=None) -> dict[str, Any]:
+        if snapshot is None:
+            review = self.conn.execute(
+                "SELECT decision, actor_kind, actor_id FROM reviews WHERE item_id = %s AND revision = %s"
+                " ORDER BY review_id DESC LIMIT 1",
+                (item_id, revision),
+            ).fetchone()
+            open_issues = self.conn.execute(
+                "SELECT COUNT(*) AS count FROM issues WHERE item_id = %s AND revision = %s AND state = 'open'",
+                (item_id, revision),
+            ).fetchone()["count"]
+        else:
+            review = snapshot["review"]
+            open_issues = snapshot["open_issues"]
         source = review["actor_kind"] if review else None
         if review:
             workflow = (
@@ -154,19 +158,25 @@ class AutoReviewMixin:
                 else review["decision"]
             )
         else:
-            reviewed = self.conn.execute(
-                "SELECT 1 FROM reviews WHERE item_id = %s AND revision < %s LIMIT 1",
-                (item_id, revision),
-            ).fetchone()
+            if snapshot is None:
+                reviewed = self.conn.execute(
+                    "SELECT 1 FROM reviews WHERE item_id = %s AND revision < %s LIMIT 1",
+                    (item_id, revision),
+                ).fetchone()
+                ai_changed = self._has_unreviewed_ai_change(item_id, revision)
+            else:
+                reviewed = snapshot["reviewed"]
+                ai_changed = snapshot["ai_changed"]
             workflow = (
                 "ai_revised"
-                if self._has_unreviewed_ai_change(item_id, revision)
+                if ai_changed
                 else "modified"
                 if reviewed
                 else "unreviewed"
             )
         issues = (
-            [i for i in self._content_of(item_id, revision).issues if i.state == "open"]
+            [i for i in (snapshot["content"] if snapshot is not None
+                         else self._content_of(item_id, revision)).issues if i.state == "open"]
             if revision
             else []
         )

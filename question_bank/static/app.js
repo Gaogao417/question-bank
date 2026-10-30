@@ -64,12 +64,7 @@ function el(tag, attrs = {}, ...children) {
 }
 
 function typeset(rootNode) {
-  if (window.MathJax?.typesetClear && window.MathJax?.typesetPromise) {
-    window.MathJax.typesetClear([rootNode]);
-    window.MathJax.typesetPromise([rootNode]).catch((error) =>
-      console.warn("MathJax typesetting failed", error),
-    );
-  }
+  window.QuestionMath?.typeset(rootNode);
 }
 
 // 显示层记法归一化：仅影响预览文本，不改动库内数据（编辑器保留原文）。
@@ -105,6 +100,20 @@ function displayBody(text) {
 }
 
 async function api(path, options = {}) {
+  const start = performance.now();
+  const metric = path.startsWith("/api/papers?") ? "api-catalog"
+    : path.startsWith("/api/items?") ? "api-directory" : "api-other";
+  try {
+    const value = await apiRequest(path, options);
+    window.qbPerformance?.record(metric, start);
+    return value;
+  } catch (error) {
+    window.qbPerformance?.record(metric, start, error.name === "AbortError" ? "canceled" : "error");
+    throw error;
+  }
+}
+
+async function apiRequest(path, options = {}) {
   // 审核工具的读取必须新鲜：浏览器缓存不得回放旧目录/详情（切卷与审核后状态会变）。
   const response = await fetch(path, { cache: "no-store", ...options });
   if (response.ok) return response.json();
@@ -406,6 +415,7 @@ async function applyFilters({
   quiet = false,
   preferHash = false,
 } = {}) {
+  const catalogStart = performance.now();
   const params = buildFilterParams();
   const filterKey = params.toString();
   // 筛选变化可能离开当前卷：dirty 时先确认，拒绝则回退到上一次成功的筛选。
@@ -426,10 +436,7 @@ async function applyFilters({
     const data = await api(`/api/papers?${filterKey}`, {
       signal: state.filtersAbort.signal,
     });
-    if (token !== state.filterToken) {
-      select.disabled = false;
-      return;
-    }
+    if (token !== state.filterToken) return;
     // 请求等待期间新建了草稿：应用结果（尤其空结果清视图）前必须再次确认。
     if (!initial && !quiet && state.dirty && !dirtyAtSubmit) {
       if (!(await confirmDiscardDirty())) {
@@ -442,6 +449,7 @@ async function applyFilters({
     applyFacets(data.facets || {});
     state.papers = data.papers || [];
     renderBankList();
+    window.qbPerformance?.record("catalog-ready", catalogStart);
     syncFiltersToUrl();
     if (!state.papers.length) {
       // 空结果：清掉旧卷视图并失效在途加载，只显示空态；旧题不可再审核。
@@ -489,9 +497,8 @@ async function applyFilters({
     }
     $("#page-status").hidden = Boolean(state.detail) || state.items.length > 0;
   } catch (error) {
+    if (error.name === "AbortError" || token !== state.filterToken) return;
     select.disabled = false;
-    if (error.name === "AbortError") return;
-    if (token !== state.filterToken) return;
     $("#page-status").textContent =
       `试卷目录加载失败：${errMessages(error)}。请刷新页面重试。`;
     $("#page-status").hidden = false;
@@ -584,13 +591,26 @@ function visibleItems() {
 
 async function loadItemList() {
   // 目录响应必须仍属于当前卷且是最新请求；否则丢弃（旧响应不得覆盖当前卷）。
+  const directoryStart = performance.now();
   const paperId = state.paperId;
   const token = ++state.itemListToken;
-  const data = await api(`/api/items?paper_id=${encodeURIComponent(paperId)}`);
+  state.itemListAbort?.abort();
+  const controller = new AbortController();
+  state.itemListAbort = controller;
+  let data;
+  try {
+    data = await api(`/api/items?paper_id=${encodeURIComponent(paperId)}`, {
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error.name === "AbortError") return;
+    throw error;
+  }
   if (token !== state.itemListToken || state.paperId !== paperId) return;
   state.items = data.items || [];
   recomputePaperStats(state.paperId);
   renderItemList();
+  window.qbPerformance?.record("directory-ready", directoryStart);
   void dispatchAiWork();
 }
 
@@ -897,6 +917,7 @@ function prefetchNeighbors() {
 }
 
 async function loadItem(itemId, revision = null) {
+  const itemStart = performance.now();
   if (!(await confirmDiscardDirty("切换题目"))) {
     if (state.detail)
       history.replaceState(
@@ -912,6 +933,7 @@ async function loadItem(itemId, revision = null) {
   showSkeleton(true);
   $("#load-error").hidden = true;
   let detail;
+  const cached = !revision && state.itemCache.has(itemId);
   if (!revision && state.itemCache.has(itemId)) {
     detail = state.itemCache.get(itemId);
   } else {
@@ -955,6 +977,11 @@ async function loadItem(itemId, revision = null) {
   }
   renderDetail();
   renderListActive();
+  window.qbPerformance?.record(cached ? "item-ready-cached" : "item-ready-network", itemStart);
+  if (!window.qbFirstItemRecorded) {
+    window.qbFirstItemRecorded = true;
+    window.qbPerformance?.record("first-item-ready", 0);
+  }
   prefetchNeighbors();
   return true;
 }

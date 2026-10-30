@@ -10,6 +10,7 @@
     />
     <script>
       window.MathJax = {
+        loader: { paths: { fonts: "/static/vendor/mathjax-4.1.3/fonts" } },
         tex: {
           inlineMath: [
             ["$", "$"],
@@ -25,9 +26,12 @@
       };
     </script>
     <script
-      defer
-      src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"
+      id="mathjax-script"
+      async
+      data-src="/static/vendor/mathjax-4.1.3/tex-mml-chtml.js"
     ></script>
+    <script defer src="/static/performance.js?v=20261025-performance-1"></script>
+    <script defer src="/static/math-renderer.js?v=20261025-performance-1"></script>
     <script defer src="/static/source-capture.js?v=20261024-review-ui-2"></script>
     <script
       defer
@@ -38,9 +42,10 @@
       href="/static/paper-repair.css?v=20261024-review-ui-2"
     />
     <script defer src="/static/review-filters.js?v=20261024-review-ui-2"></script>
-    <script defer src="/static/app.js?v=20261024-review-ui-2"></script>
+    <script defer src="/static/app.js?v=20261025-performance-1"></script>
   </head>
   <body>
+    <p id="formula-status" role="status" hidden></p>
     <header class="topbar">
       <button
         id="nav-toggle"

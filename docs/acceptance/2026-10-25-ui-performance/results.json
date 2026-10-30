@@ -1,0 +1,138 @@
+{
+  "measurement": "Authenticated localhost HTTP, five sequential samples per endpoint; live ingestion continued, not a controlled load benchmark",
+  "endpoints": [
+    {
+      "path": "/",
+      "before_ms": [
+        3.55,
+        3.87,
+        3.43,
+        5.54,
+        4.37
+      ],
+      "after_ms": [
+        14.6,
+        6.11,
+        4.36,
+        6.98,
+        5.13
+      ],
+      "before_median_ms": 3.87,
+      "after_median_ms": 6.11
+    },
+    {
+      "path": "/api/papers",
+      "before_ms": [
+        257.78,
+        253.9,
+        249.08,
+        248.44,
+        258.97
+      ],
+      "after_ms": [
+        364.13,
+        279.4,
+        261.73,
+        266.34,
+        267.36
+      ],
+      "before_median_ms": 253.9,
+      "after_median_ms": 267.36
+    },
+    {
+      "path": "/api/items?paper_id=2012-BAOSHAN-JIADING-ERMO",
+      "before_ms": [
+        691.57,
+        644.96,
+        647.63,
+        640.77,
+        650.93
+      ],
+      "after_ms": [
+        22.04,
+        17.8,
+        17.91,
+        17.24,
+        17.76
+      ],
+      "before_median_ms": 647.63,
+      "after_median_ms": 17.8
+    }
+  ],
+  "production_browser_single_sample": {
+    "errors": [],
+    "externalHosts": [],
+    "metrics": [
+      {
+        "name": "api-catalog",
+        "count": 1,
+        "failures": 0,
+        "canceled": 0,
+        "p50": 3283.3,
+        "p95": 3283.3,
+        "p99": 3283.3
+      },
+      {
+        "name": "catalog-ready",
+        "count": 1,
+        "failures": 0,
+        "canceled": 0,
+        "p50": 3308.5,
+        "p95": 3308.5,
+        "p99": 3308.5
+      },
+      {
+        "name": "api-directory",
+        "count": 1,
+        "failures": 0,
+        "canceled": 0,
+        "p50": 81,
+        "p95": 81,
+        "p99": 81
+      },
+      {
+        "name": "directory-ready",
+        "count": 1,
+        "failures": 0,
+        "canceled": 0,
+        "p50": 89.2,
+        "p95": 89.2,
+        "p99": 89.2
+      },
+      {
+        "name": "api-other",
+        "count": 3,
+        "failures": 0,
+        "canceled": 0,
+        "p50": 70,
+        "p95": 80.6,
+        "p99": 80.6
+      },
+      {
+        "name": "item-ready-network",
+        "count": 1,
+        "failures": 0,
+        "canceled": 0,
+        "p50": 92.6,
+        "p95": 92.6,
+        "p99": 92.6
+      },
+      {
+        "name": "first-item-ready",
+        "count": 1,
+        "failures": 0,
+        "canceled": 0,
+        "p50": 3827.5,
+        "p95": 3827.5,
+        "p99": 3827.5
+      }
+    ]
+  },
+  "validation": {
+    "python_tests": 232,
+    "python_result": "passed",
+    "targeted_browser": "passed",
+    "legacy_full_ui": "not passed: obsolete selectors and message expectations",
+    "isolated_databases": "all removed"
+  }
+}

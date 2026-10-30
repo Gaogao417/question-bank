@@ -30,7 +30,7 @@ question-bank-extract-docx = "question_bank.docx_source:main"
 include = ["question_bank*"]
 
 [tool.setuptools.package-data]
-question_bank = ["static/*", "migrations/*.sql"]
+question_bank = ["static/*", "static/vendor/**/*", "migrations/*.sql"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
