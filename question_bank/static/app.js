@@ -1228,6 +1228,7 @@ async function renderProposals() {
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({
                         operation_id: opId("accept-proposal"),
+                        solution_base_revision: state.detail?.reference_solution?.revision ?? null,
                         ...(issueOps.length ? { issue_ops: issueOps } : {}),
                       }),
                     },
@@ -2765,6 +2766,7 @@ async function saveEdits(background = false) {
     stem: state.draft.stem,
     answer: state.draft.answer,
     solution: state.draft.solution,
+    solution_base_revision: d.reference_solution?.revision ?? null,
     images: state.draft.images.map((b) => ({
       key: b.key,
       asset_id: b.asset_id,
@@ -2786,6 +2788,8 @@ async function saveEdits(background = false) {
     });
     state.itemCache.delete(d.item_id);
     if (stillViewingItem(d.item_id, contextToken)) {
+      if (Object.prototype.hasOwnProperty.call(receipt, "reference_solution")) d.reference_solution = receipt.reference_solution;
+      if (typeof receipt.content_hash === "string") d.content_hash = receipt.content_hash;
       // 草稿仍是提交时那份（或已取消回到基线）才定稿重载；
       // 提交后又有新输入则保留草稿与 dirty，不吞新修改。
       if (state.draftEpoch === submittedEpoch || !state.dirty) {

@@ -394,7 +394,7 @@ class TeachingNotesMixin:
                 error("ITEM_NOT_FOUND", f"题目尚无修订: {item_id}",
                       item_key=item_id, retryable=False)
             ])
-        content = self._content_of(item_id, current)
+        content, reference_solution = self._solution_content_of(item_id, current)
         for entry in derive_subquestions(content.stem):
             if entry["id"] == subquestion_id:
                 return {
@@ -405,6 +405,7 @@ class TeachingNotesMixin:
                     "stem": content.stem,
                     "answer": content.answer,
                     "solution": content.solution,
+                    "reference_solution": reference_solution,
                 }
         raise QbError([
             error("SUBQUESTION_NOT_FOUND",
@@ -1146,13 +1147,14 @@ class TeachingNotesMixin:
         """生成/润色的题目上下文：笔记来源修订的三块正文 + 小问快照。"""
         row = self._live_note_row(note_id)
         current = self._note_version_row(note_id, row["current_version"])
-        content = self._content_of(row["item_id"], current["source_revision"])
+        content, reference_solution = self._solution_content_of(row["item_id"], current["source_revision"])
         return {
             "stem": content.stem,
             "subquestion_label": current["subquestion_label"],
             "subquestion_stem": current["subquestion_stem"],
             "answer": content.answer,
             "solution": content.solution,
+            "reference_solution": reference_solution,
             "item_id": row["item_id"],
             "note_row": row,
             "version_row": current,
@@ -1257,7 +1259,7 @@ class TeachingNotesMixin:
         current = self._note_version_row(note_id, base)
         item_row = self._item_row(row["item_id"])
         item_revision = item_row["current_revision"]
-        content = self._content_of(row["item_id"], item_revision)
+        content, reference_solution = self._solution_content_of(row["item_id"], item_revision)
         snapshot = self._snapshot_for(row["item_id"], current["subquestion_id"])
         existing = self._begin_ai_operation(
             operation_id, f"generate_{kind}", note_id, request_hash,
@@ -1273,6 +1275,7 @@ class TeachingNotesMixin:
             "subquestion_stem": snapshot["subquestion_stem"],
             "answer": content.answer,
             "solution": content.solution,
+            "reference_solution": reference_solution,
             "explanation": current["explanation_text"],
         }
         try:
@@ -1329,7 +1332,7 @@ class TeachingNotesMixin:
                       item_key=item_id, retryable=False)
             ])
         item_revision = item_row["current_revision"]
-        content = self._content_of(item_id, item_revision)
+        content, reference_solution = self._solution_content_of(item_id, item_revision)
         derived = derive_subquestions(content.stem)
 
         # ---- 冻结目标清单（覆盖口径：仅当前来源不过期的 note 计入覆盖）----
@@ -1424,6 +1427,7 @@ class TeachingNotesMixin:
                     "subquestion_stem": target["subquestion_stem"],
                     "answer": content.answer,
                     "solution": content.solution,
+                    "reference_solution": reference_solution,
                     "explanation": (by_note.get(note_id) or {}).get("explanation", ""),
                 }
                 meta: dict[str, Any] = {}

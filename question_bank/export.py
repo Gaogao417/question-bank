@@ -148,11 +148,16 @@ def export_revision(
             )
         ])
     content = service._content_of(item_id, revision)
+    reference = detail.get("reference_solution")
+    options_hash = ""
+    if reference is not None:
+        content = content.model_copy(update={"solution": reference["text"]})
+        options_hash = sha256_bytes(canonical_json({k: reference[k] for k in ("solution_id", "revision", "content_hash")}).encode())
 
     row = conn.execute(
         "SELECT * FROM exports WHERE item_id = %s AND revision = %s"
-        " AND exporter_version = %s AND options_hash = ''",
-        (item_id, revision, EXPORTER_VERSION),
+        " AND exporter_version = %s AND options_hash = %s",
+        (item_id, revision, EXPORTER_VERSION, options_hash),
     ).fetchone()
     export_id = row["export_id"] if row else None
     now = db_mod.utc_now()
@@ -160,7 +165,7 @@ def export_revision(
         cursor = conn.execute(
             "INSERT INTO exports(item_id, revision, exporter_version, options_hash,"
             " status, created_at) VALUES (%s,%s,%s,%s, 'pending', %s) RETURNING export_id",
-            (item_id, revision, EXPORTER_VERSION, "", now),
+            (item_id, revision, EXPORTER_VERSION, options_hash, now),
         )
         export_id = cursor.fetchone()["export_id"]
     else:
@@ -180,8 +185,9 @@ def export_revision(
         )
     conn.commit()
 
-    out_dir = service.root / "exports" / item_id / f"r{revision}"
-    tmp_dir = out_dir.parent / f".tmp-{item_id}-r{revision}"
+    suffix = "" if reference is None else "-solution-" + options_hash.removeprefix("sha256:")[:16]
+    out_dir = service.root / "exports" / item_id / f"r{revision}{suffix}"
+    tmp_dir = out_dir.parent / f".tmp-{item_id}-r{revision}{suffix}"
     try:
         if tmp_dir.exists():
             _remove_tree(tmp_dir)
@@ -232,6 +238,7 @@ def export_revision(
             "item_id": item_id,
             "revision": revision,
             "content_hash": detail["content_hash"],
+            **({"reference_solution": {k: reference[k] for k in ("solution_id", "revision", "content_hash")}} if reference is not None else {}),
             "draft": not approved,
             "files": {
                 "teacher": "teacher.assignment.yaml",

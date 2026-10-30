@@ -68,10 +68,13 @@ def _png_bytes(size=(40, 30), color=(255, 0, 0)) -> bytes:
     return buffer.getvalue()
 
 
+# 含真实采样字节：当前 ffprobe 对 0 长度 data 块返回 "N/A" 时长，
+# 会被 register_audio 判为探测失败。
+SAMPLES = b"\x00\x40\x80\xbf" * 20
 WAV_BYTES = (
-    b"RIFF" + (36).to_bytes(4, "little") + b"WAVEfmt " + (16).to_bytes(4, "little")
+    b"RIFF" + (36 + len(SAMPLES)).to_bytes(4, "little") + b"WAVEfmt " + (16).to_bytes(4, "little")
     + b"\x01\x00\x01\x00" + (8000).to_bytes(4, "little") * 2
-    + b"\x01\x00\x08\x00" + b"data" + (0).to_bytes(4, "little")
+    + b"\x01\x00\x08\x00" + b"data" + len(SAMPLES).to_bytes(4, "little") + SAMPLES
 )
 
 

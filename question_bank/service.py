@@ -24,6 +24,7 @@ from psycopg.pq import TransactionStatus
 
 from question_bank import db as db_mod
 from question_bank import catalog
+from question_bank import unified_solutions
 from question_bank import export as export_mod
 from question_bank.assets import AssetStore
 from question_bank.auto_review import AutoReviewMixin
@@ -727,6 +728,7 @@ class QuestionBankService(AutoReviewMixin, TeachingNotesMixin):
             (revision, item_id),
         )
         self._copy_bindings_and_issues(item_id, revision, content)
+        unified_solutions.ensure_reference(self.conn, item_id, revision)
         self._run_and_record_check(
             item_id, revision, content, registered_assets=registered_assets
         )
@@ -940,11 +942,16 @@ class QuestionBankService(AutoReviewMixin, TeachingNotesMixin):
                 raise ReceiptError(conflict["errors"], conflict=conflict)
 
             base_content = self._content_of(item_id, current)
+            reference_before = unified_solutions.ensure_reference(self.conn, item_id, current)
+            unified = unified_solutions.owner_schema(self.conn) is not None
+            reference_after = reference_before
             new_data = base_content.to_dict()
             for field in ("stem", "answer", "solution", "question_type",
                           "points", "section_title", "images", "evidence"):
                 value = getattr(parsed, field)
                 if value is not None:
+                    if field == "solution" and unified:
+                        continue  # Current solution is an independently versioned entity.
                     if field in ("question_type", "points", "section_title"):
                         new_data["identity"][field] = value
                     else:
@@ -958,8 +965,11 @@ class QuestionBankService(AutoReviewMixin, TeachingNotesMixin):
                                                   item_id, issue_resolution=issue_resolution)
             new_data["issues"] = issues_data
             new_content = ItemContent.model_validate(new_data)
+            effective_solution = (parsed.solution if parsed.solution is not None else
+                reference_before["text"] if reference_before is not None else base_content.solution)
+            validation_content = new_content.model_copy(update={"solution": effective_solution}) if unified else new_content
             validation_errors = self.validate_content(
-                new_content, item_key=item_id
+                validation_content, item_key=item_id
             )
             if validation_errors:
                 raise QbError(validation_errors)
@@ -967,15 +977,25 @@ class QuestionBankService(AutoReviewMixin, TeachingNotesMixin):
             old_hash = content_hash_payload(base_content.to_dict())
             new_hash = content_hash_payload(new_content.to_dict())
             changed = old_hash != new_hash or issue_changes > 0
+            if unified and parsed.solution is not None:
+                try:
+                    reference_after = unified_solutions.save_reference_text(self.conn, item_id, current,
+                        parsed.solution, parsed.solution_base_revision, actor_kind, actor_id)
+                except unified_solutions.SolutionConflict as conflict:
+                    raise ReceiptError([error("SOLUTION_REVISION_CONFLICT", str(conflict), item_key=item_id,
+                        field_path="body.solution", fix_hint="刷新当前解法版本后重试；本地未保存文字仍应保留。", retryable=False)]) from conflict
+            solution_changed = (reference_after is not None and
+                (reference_before is None or reference_after["revision"] != reference_before["revision"]))
             if not changed:
                 receipt = {
                     "operation_id": parsed.operation_id,
                     "item_id": item_id,
-                    "status": "noop",
+                    "status": "saved" if solution_changed else "noop",
                     "base_revision": current,
                     "revision": current,
-                    "content_hash": old_hash,
-                    "changed": False,
+                    "content_hash": (self.conn.execute("SELECT content_hash FROM revisions WHERE item_id=%s AND revision=%s", (item_id, current)).fetchone()["content_hash"] if unified else old_hash),
+                    "changed": solution_changed,
+                    "reference_solution": reference_after,
                     "replayed": False,
                 }
                 self._insert_operation(
@@ -985,6 +1005,11 @@ class QuestionBankService(AutoReviewMixin, TeachingNotesMixin):
                 self.conn.execute("COMMIT")
                 return receipt
 
+            if unified:
+                # A genuinely new question revision captures the effective text
+                # once; its historical bytes/hash are never rewritten later.
+                new_content = new_content.model_copy(update={"solution": effective_solution})
+                new_hash = content_hash_payload(new_content.to_dict())
             revision = current + 1
             now = db_mod.utc_now()
             self.conn.execute(
@@ -1003,11 +1028,13 @@ class QuestionBankService(AutoReviewMixin, TeachingNotesMixin):
                 (revision, item_id),
             )
             self._copy_bindings_and_issues(item_id, revision, new_content)
+            reference_after = unified_solutions.ensure_reference(self.conn, item_id, revision) if unified else None
             self._run_and_record_check(item_id, revision, new_content)
             receipt = {
                 "operation_id": parsed.operation_id,
                 "item_id": item_id,
                 "status": "saved",
+                "reference_solution": reference_after,
                 "base_revision": current,
                 "revision": revision,
                 "content_hash": new_hash,
@@ -1198,6 +1225,8 @@ class QuestionBankService(AutoReviewMixin, TeachingNotesMixin):
         save_request: dict[str, Any] = {"base_revision": current,
                                         "operation_id": operation_id}
         save_request.update(json.loads(row["patch"]))
+        if isinstance(request.get("solution_base_revision"),int) and request["solution_base_revision"]>0:
+            save_request["solution_base_revision"]=request["solution_base_revision"]
         # 修改向导在采用建议时把疑点处置并入同一次保存（用户确认才算解决）。
         issue_ops = request.get("issue_ops")
         if isinstance(issue_ops, list) and issue_ops:
@@ -1955,6 +1984,7 @@ class QuestionBankService(AutoReviewMixin, TeachingNotesMixin):
             })
         return result
 
+    @_write_locked
     def item_detail(self, item_id: str, revision: int | None = None) -> dict[str, Any]:
         item_row = self._item_row(item_id)
         if item_row is None:
@@ -2080,6 +2110,11 @@ class QuestionBankService(AutoReviewMixin, TeachingNotesMixin):
             "hash_version": rev_row["hash_version"],
             "revisions": [dict(r) for r in revisions],
         }
+        reference = unified_solutions.ensure_reference(self.conn, item_id, revision)
+        detail["solution_snapshot"] = content.solution
+        detail["reference_solution"] = reference
+        if reference is not None:
+            detail["body"]["solution"] = reference["text"]
         detail.update(self.review_metadata(item_id, revision))
         return detail
 
@@ -2173,6 +2208,12 @@ class QuestionBankService(AutoReviewMixin, TeachingNotesMixin):
                       f"修订不存在: {item_id} r{revision}", retryable=False)
             ])
         return ItemContent.model_validate(json.loads(row["content"]))
+
+    def _solution_content_of(self, item_id: str, revision: int):
+        """Current method plus explicit method version; never used for question hashing."""
+        content = self._content_of(item_id, revision)
+        reference = unified_solutions.ensure_reference(self.conn, item_id, revision)
+        return (content.model_copy(update={"solution": reference["text"]}) if reference else content), reference
 
     def _copy_bindings_and_issues(
         self, item_id: str, revision: int, content: ItemContent

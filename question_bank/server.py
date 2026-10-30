@@ -508,6 +508,8 @@ def create_app(root: str | Path) -> FastAPI:
     def _http(exc: QbError, default_status: int = 400) -> HTTPException:
         """QbError → HTTPException；乐观并发冲突固定 409 并携带冲突负载。"""
         conflict = getattr(exc, "conflict", None)
+        if isinstance(exc, ReceiptError) and any(e.get("code")=="SOLUTION_REVISION_CONFLICT" for e in exc.errors):
+            return HTTPException(status_code=409,detail={"errors":exc.errors})
         if isinstance(exc, ReceiptError) and conflict:
             return HTTPException(
                 status_code=409,

@@ -274,7 +274,8 @@ class PaperRepair:
             item["proposal_id"] = proposal_id
             receipt = self.service.accept_proposal(
                 proposal_id,
-                {"operation_id": proposal_id + "-save", "issue_ops": corrections},
+                {"operation_id": proposal_id + "-save", "issue_ops": corrections,
+                 "solution_base_revision": (d.get("reference_solution") or {}).get("revision")},
                 issue_resolution={"actor_kind": "ai", "actor_id": job["job_id"]},
             )
             item["revision"] = receipt["save_receipt"]["revision"]

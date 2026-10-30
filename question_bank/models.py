@@ -284,6 +284,7 @@ class ContentPatch(BaseModel):
     stem: str | None = None
     answer: str | None = None
     solution: str | None = None
+    solution_base_revision: int | None = Field(default=None, ge=1)
     question_type: Literal["choice", "fillin", "short_answer", "problem"] | None = None
     points: int | None = Field(default=None, ge=0, le=200)
     section_title: str | None = None
